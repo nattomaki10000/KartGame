@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>🏎 3D Anti-Gravity Kart — WebGL デモ</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#020010;overflow:hidden;font-family:'Courier New',monospace;user-select:none;touch-action:none}
+canvas{display:block}
+
+/* ── 左上：時速 + ステータス ── */
+#topLeft{position:fixed;top:18px;left:18px;z-index:5;display:flex;align-items:flex-start;gap:20px;pointer-events:none}
+
+/* ── Speed ── */
+#spd{text-align:left}
+#spd-num{font-size:56px;font-weight:900;color:#00ffcc;text-shadow:0 0 20px #00ffcc,0 0 60px rgba(0,255,204,.35);line-height:1;letter-spacing:-3px}
+#spd-unit{font-size:10px;color:rgba(0,255,204,.55);letter-spacing:3px;margin-top:2px}
+
+/* ── Status（時速の右） ── */
+#status{display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.sline{font-size:13px;letter-spacing:2px;color:rgba(0,255,204,.9);text-shadow:0 0 10px rgba(0,255,204,.6);font-weight:bold;white-space:nowrap}
+
+/* ── 右上：HUD bars ── */
+#hud{position:fixed;top:18px;right:18px;width:240px;z-index:5;pointer-events:none}
+.hrow{display:flex;align-items:center;margin-bottom:6px;gap:8px}
+.hlabel{font-size:9px;letter-spacing:3px;color:rgba(0,255,204,.45);width:50px;flex-shrink:0;text-align:right}
+.bbg{flex:1;height:6px;background:rgba(255,255,255,.04);border:1px solid rgba(0,255,204,.12);border-radius:3px;overflow:hidden}
+.bfill{height:100%;border-radius:3px;transition:width .07s linear,background .25s}
+#sf{background:#00ffcc;box-shadow:0 0 8px #00ffcc}
+#df{background:#00aaff;box-shadow:0 0 8px #00aaff}
+#bf{background:#ff8800;box-shadow:0 0 8px #ff8800}
+
+/* ── Spark ── */
+#spark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font-size:54px;opacity:0;transition:opacity .15s;filter:drop-shadow(0 0 20px currentColor);z-index:5}
+#spark.blue{opacity:1;color:#00aaff}
+#spark.red{opacity:1;color:#ff4400}
+
+/* ── Title / intro ── */
+#title{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;transition:opacity .8s;z-index:4}
+#title h1{font-size:48px;font-weight:900;color:#00ffcc;letter-spacing:-2px;text-shadow:0 0 30px #00ffcc,0 0 80px rgba(0,255,204,.3)}
+#title p{font-size:12px;letter-spacing:4px;color:rgba(0,255,204,.5);margin-top:10px;text-align:center;line-height:1.8}
+#title.hide{opacity:0}
+
+/* ── Overlays ── */
+#bflash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 70%,rgba(255,140,0,.22) 0%,transparent 65%);transition:opacity .12s;z-index:3}
+#bflash.on{opacity:1}
+#dvign{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,100,255,.15) 100%);transition:opacity .3s;z-index:3}
+#dvign.on{opacity:1}
+
+/* ── Touch Controls ── */
+#touchCtrl{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;z-index:10}
+#touchCtrl.active{opacity:1;pointer-events:auto}
+.touch-btn{position:fixed;width:70px;height:70px;border-radius:50%;border:2px solid rgba(0,255,204,0.5);background:rgba(0,255,204,0.15);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;color:rgba(0,255,204,0.9);font-size:28px;font-weight:bold;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .1s,background .2s;bottom:20px}
+.touch-btn:active{transform:scale(0.92);background:rgba(0,255,204,0.3)}
+
+#touchL{left:20px}
+#touchR{left:100px}
+#touchGas{right:20px;border-color:rgba(0,255,150,0.5);background:rgba(0,255,150,0.15);font-size:32px}
+#touchGas:active{background:rgba(0,255,150,0.3)}
+#touchBrake{right:100px;border-color:rgba(255,100,100,0.5);background:rgba(255,100,100,0.15);font-size:32px}
+#touchBrake:active{background:rgba(255,100,100,0.3)}
+#touchJump{left:50%;transform:translateX(-50%);width:75px;height:75px;border-color:rgba(255,200,0,0.5);background:rgba(255,200,0,0.15);font-size:13px;letter-spacing:1px}
+#touchJump:active{background:rgba(255,200,0,0.3)}
+
+/* 追加：重力切り替えボタン（右側のアクセルボタンの上に配置） */
+#touchGrav{right:20px;bottom:100px;border-color:rgba(200,100,255,0.5);background:rgba(200,100,255,0.15);font-size:14px;letter-spacing:1px}
+#touchGrav:active{background:rgba(200,100,255,0.3)}
+
+#touchHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(0,255,204,0.4);font-size:14px;letter-spacing:2px;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="topLeft">
+  <div id="spd"><div id="spd-num">0</div><div id="spd-unit">km / h</div></div>
+  <div id="status"><div class="sline" id="s1">─</div><div class="sline" id="s2">─</div><div class="sline" id="s3">ANTI-GRAV</div></div>
+</div>
+
+<div id="hud">
+  <div class="hrow"><span class="hlabel">SPEED</span><div class="bbg"><div id="sf" class="bfill" style="width:0%"></div></div></div>
+  <div class="hrow"><span class="hlabel">DRIFT</span><div class="bbg"><div id="df" class="bfill" style="width:0%"></div></div></div>
+  <div class="hrow"><span class="hlabel">BOOST</span><div class="bbg"><div id="bf" class="bfill" style="width:0%"></div></div></div>
+</div>
+
+<div id="spark">★</div>
+<div id="bflash"></div>
+<div id="dvign"></div>
+
+<div id="title">
+  <h1>KART DEMO: ANTI-GRAVITY</h1>
+  <p>W/S アクセル/ブレーキ　A/D ステア<br>SPACE ジャンプ/エアアクション　G 重力切替<br>【ANTI-GRAV】パイプやループを走破 (±30°以内)<br>【NORMAL】壁走り可・90°以上は走れない・坂を自然に滑落</p>
+</div>
+
+<div id="touchCtrl">
+  <div id="touchL" class="touch-btn">←</div>
+  <div id="touchR" class="touch-btn">→</div>
+  <div id="touchGas" class="touch-btn">↑</div>
+  <div id="touchBrake" class="touch-btn">↓</div>
+  <div id="touchJump" class="touch-btn">JUMP</div>
+  <div id="touchGrav" class="touch-btn">GRAV</div>
+  <div id="touchHint">タップで操作</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================================================================
+   PHYSICS PARAMS & STATE
+   ================================================================ */
+const P = {
+  maxFwdSpd:    20,
+  maxRevSpd:     8,
+  accel:        18,
+  brakeDecel:   30,
+  natDecel:      9,
+  steerLow:   2.09,
+  steerHigh:  0.87,
+  jumpForce:    8.0,
+  gravMult:     3.0,
+  driftSteerMult: 1.8,
+  driftSlip:      8.0,
+  maxSlip:        5.0,
+  driftTilt:     22.0,
+  blueSparkT:   1.5,
+  redSparkT:    3.5,
+  blueBoostSpd: 8,
+  redBoostSpd:  14,
+  blueBoostDur: 1.2,
+  redBoostDur:  2.0,
+  landBoostSpd: 4,
+  landBoostDur: 0.5,
+  wallBounce:   0.4,
+};
+
+const ARENA = 100;
+const GND_Y = 0.38;
+const KRADR = 0.75; // カートの当たり判定半径
+
+// 3Dベクトルによる状態管理
+let kartForward = new THREE.Vector3(0, 0, 1);
+let kartNormal  = new THREE.Vector3(0, 1, 0);
+
+let fwdSpd=0, vertVel=0, latSpd=0;
+let grounded=true, wasGrounded=true;
+let drifting=false, driftPend=false, driftDir=0, driftT=0, spark=0;
+let boostSpd=0, boostT=0, landBoostT=0, airAction=false;
+let bodyTilt=0;
+let started=false;
+let gravityMode = 'antigravity'; // 'antigravity' | 'normal'
+
+/* ================================================================
+   INPUT & TOUCH UI
+   ================================================================ */
+const keys = {}, pressed = {}, released = {};
+window.addEventListener('keydown', e => {
+  if (!keys[e.code]) pressed[e.code] = true;
+  keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'KeyG' && !keys.KeyG) toggleGravityMode();
+  hideTouchUI();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; released[e.code] = true; });
+
+const gV = () => ((keys.KeyW||keys.ArrowUp)?1:0) + ((keys.KeyS||keys.ArrowDown)?-1:0);
+const gH = () => ((keys.KeyD||keys.ArrowRight)?-1:0) + ((keys.KeyA||keys.ArrowLeft)?1:0);
+
+const touchCtrl = document.getElementById('touchCtrl');
+let touchUIVisible = false;
+function showTouchUI() { touchUIVisible=true; touchCtrl.classList.add('active'); }
+function hideTouchUI() { if(touchUIVisible){ touchUIVisible=false; touchCtrl.classList.remove('active'); } }
+window.addEventListener('touchstart', e => {
+  if(!touchUIVisible && (e.target===document.body || e.target.tagName==='CANVAS')){
+    showTouchUI(); document.getElementById('touchHint').style.display='none';
+  }
+}, {passive: true});
+
+// touchGrav に KeyG をマッピング
+const tMap = {
+  'touchL':['KeyA','ArrowLeft'],
+  'touchR':['KeyD','ArrowRight'],
+  'touchGas':['KeyW','ArrowUp'],
+  'touchBrake':['KeyS','ArrowDown'],
+  'touchJump':['Space'],
+  'touchGrav':['KeyG']
+};
+
+Object.keys(tMap).forEach(id => {
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  btn.addEventListener('touchstart', e => {
+    e.preventDefault(); e.stopPropagation();
+    
+    // GRAVボタン特有の処理: タップ時に直接 toggleGravityMode を呼び出す
+    if (id === 'touchGrav') toggleGravityMode();
+    
+    tMap[id].forEach(c => { if(!keys[c]) pressed[c]=true; keys[c]=true; });
+    btn.dataset.ot = btn.style.transform; 
+    btn.style.transform = (id==='touchJump'?'translateX(-50%) ':'')+'scale(0.92)';
+  }, {passive: false});
+  
+  btn.addEventListener('touchend', e => {
+    e.preventDefault(); e.stopPropagation();
+    tMap[id].forEach(c => { keys[c]=false; released[c]=true; });
+    btn.style.transform = btn.dataset.ot || '';
+  }, {passive: false});
+  
+  btn.addEventListener('touchcancel', () => { 
+    tMap[id].forEach(c => { keys[c]=false; released[c]=true; }); 
+    btn.style.transform = btn.dataset.ot || ''; 
+  });
+});
+
+/* ================================================================
+   THREE.JS SETUP & LIGHTING
+   ================================================================ */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020010);
+scene.fog = new THREE.FogExp2(0x020010, 0.006);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 800);
+window.addEventListener('resize', () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+scene.add(new THREE.AmbientLight(0x221155, 0.9));
+const sun = new THREE.DirectionalLight(0x9977ff, 1.2);
+sun.position.set(40, 120, -60); sun.castShadow = true;
+Object.assign(sun.shadow.camera, {left:-120,right:120,top:120,bottom:-120,near:1,far:300});
+sun.shadow.mapSize.setScalar(2048); scene.add(sun);
+
+const blueLight  = new THREE.PointLight(0x00aaff, 0, 7); scene.add(blueLight);
+const redLight   = new THREE.PointLight(0xff3300, 0, 7); scene.add(redLight);
+const boostLight = new THREE.PointLight(0xff8800, 0, 9); scene.add(boostLight);
+
+/* ================================================================
+   KART MESH
+   ================================================================ */
+const kartGroup = new THREE.Group();
+const kartBody  = new THREE.Group();
+
+const mBody = new THREE.MeshPhongMaterial({color:0xcc1100,emissive:0x280000,shininess:160});
+const mCock = new THREE.MeshPhongMaterial({color:0x000e22,emissive:0x001133,shininess:200});
+const mWhl  = new THREE.MeshPhongMaterial({color:0x181818,shininess:60});
+const mGlow = new THREE.MeshBasicMaterial({color:0x00ffcc});
+
+function mkBox(w,h,d,mat,x=0,y=0,z=0,shd=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z);
+  if(shd){m.castShadow=true; m.receiveShadow=true;} return m;
+}
+
+kartBody.add(mkBox(1.22,0.44,2.0,  mBody));
+kartBody.add(mkBox(0.72,0.32,0.88, mCock, 0,  0.37, -0.08));
+kartBody.add(mkBox(0.92,0.27,0.52, mBody, 0, -0.07,  0.87));
+kartBody.add(mkBox(1.32,0.08,0.18, mBody, 0,  0.32, -0.85));
+kartBody.add(mkBox(0.08,0.34,0.08, mBody, 0,  0.15, -0.82));
+const glowStrip = mkBox(1.0,0.04,1.75, mGlow, 0,-0.24,0, false);
+kartBody.add(glowStrip);
+
+const wGeo = new THREE.CylinderGeometry(0.28,0.28,0.2,12);
+[[-0.73,-0.2,0.72],[0.73,-0.2,0.72],[-0.73,-0.2,-0.72],[0.73,-0.2,-0.72]].forEach(([x,y,z])=>{
+  const w=new THREE.Mesh(wGeo,mWhl); w.rotation.z=Math.PI/2; w.position.set(x,y,z); w.castShadow=true; kartBody.add(w);
+});
+
+kartGroup.add(kartBody);
+kartGroup.position.set(0, GND_Y, 0); // 初期位置
+scene.add(kartGroup);
+
+/* ================================================================
+   TERRAIN (3D Collision Objects)
+   ================================================================ */
+const terrainObjects = [];
+
+function addTerrain(mesh) {
+    scene.add(mesh);
+    terrainObjects.push(mesh);
+}
+
+// アリーナ地面
+const gndGeo = new THREE.PlaneGeometry(ARENA*2, ARENA*2);
+gndGeo.rotateX(-Math.PI/2);
+const gnd = new THREE.Mesh(gndGeo, new THREE.MeshPhongMaterial({color:0x030018,emissive:0x010009, side:THREE.DoubleSide}));
+gnd.receiveShadow = true;
+addTerrain(gnd);
+
+// 外周の壁
+const wMat  = new THREE.MeshPhongMaterial({color:0x0c0036,emissive:0x1a0055});
+const S=ARENA, WH=20, WT=2.0;
+[[0,WH/2,S,S*2+WT*2,WH,WT], [0,WH/2,-S,S*2+WT*2,WH,WT], [S,WH/2,0,WT,WH,S*2], [-S,WH/2,0,WT,WH,S*2]]
+.forEach(([px,py,pz,sx,sy,sz])=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),wMat);
+  m.position.set(px,py,pz); m.castShadow=true; m.receiveShadow=true; addTerrain(m);
+});
+
+// 中央の障害物
+const obsMat = new THREE.MeshPhongMaterial({color:0x2a0044,emissive:0x100022});
+function addObs(px,pz,w,d){
+  const h=8.0; const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),obsMat);
+  m.position.set(px,h/2,pz); m.castShadow=true; m.receiveShadow=true; addTerrain(m);
+}
+addObs(40, 40, 10, 10); addObs(-40, 40, 10, 10);
+
+// ★ 天井まで登れるフルパイプ
+const pipeGeo = new THREE.CylinderGeometry(20, 20, 50, 24, 1, true); 
+pipeGeo.rotateZ(Math.PI/2);
+const pipeMat = new THREE.MeshPhongMaterial({color:0x4400aa, emissive:0x110033, side: THREE.DoubleSide});
+const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+pipe.position.set(0, 20, -55);
+pipe.receiveShadow = true; pipe.castShadow = true;
+addTerrain(pipe);
+
+// ★ 斜めのハーフパイプ
+const hPipeGeo = new THREE.CylinderGeometry(30, 30, 50, 24, 1, true, 0, Math.PI);
+hPipeGeo.rotateZ(Math.PI/2); hPipeGeo.rotateY(Math.PI/4);
+const hPipeMat = new THREE.MeshPhongMaterial({color:0x008855, emissive:0x002211, side: THREE.DoubleSide});
+const hPipe = new THREE.Mesh(hPipeGeo, hPipeMat);
+hPipe.position.set(-45, 30, 45);
+hPipe.receiveShadow = true; hPipe.castShadow = true;
+addTerrain(hPipe);
+
+// 背景の星
+const sPts = new Float32Array(1000*3);
+for(let i=0;i<1000;i++){ sPts[i*3]=(Math.random()-.5)*800; sPts[i*3+1]=Math.random()*200+10; sPts[i*3+2]=(Math.random()-.5)*800; }
+const sGeo=new THREE.BufferGeometry(); sGeo.setAttribute('position',new THREE.BufferAttribute(sPts,3));
+scene.add(new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xffffff,size:.15})));
+
+/* ================================================================
+   UTILS & 3D VECTORS
+   ================================================================ */
+const clamp = (v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const mvtw  = (c,t,d)=>{const df=t-c;return Math.abs(df)<=d?t:c+Math.sign(df)*d;};
+
+const getFwd = () => kartForward;
+const getRight = () => new THREE.Vector3().crossVectors(kartNormal, kartForward).normalize();
+
+function alignForwardToNormal() {
+    const right = new THREE.Vector3().crossVectors(kartNormal, kartForward).normalize();
+    kartForward.crossVectors(right, kartNormal).normalize();
+}
+
+function toggleGravityMode() {
+    gravityMode = gravityMode === 'antigravity' ? 'normal' : 'antigravity';
+    // 切り替え時にkartNormalをY+方向にリセット、再接地させる
+    kartNormal.set(0, 1, 0);
+    alignForwardToNormal();
+    vertVel = 0;
+    grounded = false;
+}
+
+/* ================================================================
+   PHYSICS FUNCTIONS
+   ================================================================ */
+function onLanded(){
+  if(wasGrounded||!grounded) return;
+  if(driftPend){
+    const h=gH(); if(Math.abs(h)>.1){ drifting=true; driftDir=Math.sign(h); driftT=0; spark=0; }
+    driftPend=false;
+  }
+  if(airAction){ landBoostT=P.landBoostDur; airAction=false; }
+}
+
+function doJump(){
+  if(!pressed.Space || drifting) return;
+  if(grounded){
+    vertVel = P.jumpForce;
+    if(Math.abs(gH())>.1) driftPend=true;
+    if(gravityMode === 'normal') grounded = false;
+  }
+  else { if(Math.abs(gH())>.1) driftPend=true; }
+}
+
+function doAirAction(){ if(!grounded && pressed.Space) airAction=true; }
+
+function doDriftRelease(){
+  if(!drifting) return;
+  let end = released.Space;
+  if(Math.sign(gH())===-driftDir && Math.abs(gH())>.8) end=true;
+  if(end) releaseDrift();
+}
+
+function releaseDrift(){
+  if(spark===2){boostSpd=P.redBoostSpd; boostT=P.redBoostDur;} else if(spark===1){boostSpd=P.blueBoostSpd; boostT=P.blueBoostDur;}
+  drifting=false; driftDir=0; driftT=0; spark=0;
+}
+
+function chargeTurbo(dt){
+  if(!drifting||!grounded) return;
+  driftT+=dt;
+  if(spark<2 && driftT>=P.redSparkT) spark=2; else if(spark<1 && driftT>=P.blueSparkT) spark=1;
+}
+
+function tickTimers(dt){
+  if(boostT>0){boostT-=dt; if(boostT<=0){boostT=0;boostSpd=0;}}
+  if(landBoostT>0) landBoostT=Math.max(0,landBoostT-dt);
+}
+
+function gravity(dt){
+  if(grounded && vertVel<0) vertVel = -1; // 常に現在の面に軽く押し付ける
+  else vertVel -= 9.81 * P.gravMult * dt;
+
+  // NORMALモード：重力の坂方向成分を前後・左右速度に加算（坂を自然に滑落）
+  if(gravityMode === 'normal' && grounded){
+    const g = 9.81 * P.gravMult;
+    const f = kartForward, r = getRight();
+    fwdSpd -= g * f.y * dt;
+    latSpd -= g * r.y * dt;
+  }
+}
+
+function accelerate(dt){
+  const v=gV(); const eMax=P.maxFwdSpd+(boostT>0?boostSpd:0)+(landBoostT>0?P.landBoostSpd:0);
+  let tgt, rate;
+  if(v>.01){ tgt=eMax; rate=fwdSpd<-.1?P.brakeDecel:P.accel; }
+  else if(v<-.01){ tgt=-P.maxRevSpd; rate=fwdSpd>.1?P.brakeDecel:P.accel; }
+  else { tgt=0; rate=P.natDecel; }
+  fwdSpd=mvtw(fwdSpd,tgt,rate*dt);
+}
+
+function steer(dt){
+  if(Math.abs(fwdSpd)<.5) return;
+  const h=gH();
+  const sr=clamp(Math.abs(fwdSpd)/P.maxFwdSpd,0,1);
+  const rate=P.steerLow + (P.steerHigh - P.steerLow)*sr;
+  let mult=1; if(drifting) mult = Math.sign(h)===driftDir ? P.driftSteerMult : 0.35;
+  
+  // 法線を軸にして前ベクトルを回転させる（3Dステアリング）
+  const angle = h * mult * rate * Math.sign(fwdSpd) * dt;
+  kartForward.applyAxisAngle(kartNormal, angle).normalize();
+}
+
+function sideslip(dt){
+  if(!drifting||!grounded) return;
+  if(Math.abs(latSpd)<P.maxSlip) latSpd=clamp(latSpd+driftDir*P.driftSlip*dt,-P.maxSlip,P.maxSlip);
+}
+
+// 3D壁反射
+function bounce3D(wallNormal) {
+    const f = kartForward;
+    const r = getRight();
+    let vx = f.x * fwdSpd + r.x * latSpd;
+    let vy = f.y * fwdSpd + r.y * latSpd;
+    let vz = f.z * fwdSpd + r.z * latSpd;
+    const vel = new THREE.Vector3(vx, vy, vz);
+    const dot = vel.dot(wallNormal);
+    vel.sub(wallNormal.clone().multiplyScalar(2 * dot)).multiplyScalar(P.wallBounce);
+    fwdSpd = vel.dot(f); latSpd = vel.dot(r);
+    if(drifting) releaseDrift();
+}
+
+// ★ 3D移動・地形追従ロジック
+function commit(dt) {
+    if (!drifting) latSpd *= Math.max(0, 1 - 12 * dt);
+    wasGrounded = grounded;
+    
+    const f = kartForward;
+    const r = getRight();
+
+    if (gravityMode === 'normal' && !grounded) {
+        kartNormal.lerp(new THREE.Vector3(0, 1, 0), dt * 4).normalize();
+        alignForwardToNormal();
+    }
+
+    const moveVec = new THREE.Vector3()
+        .addScaledVector(f, fwdSpd * dt)
+        .addScaledVector(r, latSpd * dt);
+
+    if (gravityMode === 'normal') {
+        moveVec.y += vertVel * dt;
+    } else {
+        moveVec.addScaledVector(kartNormal, vertVel * dt);
+    }
+        
+    const moveDist = moveVec.length();
+    if (moveDist === 0) return;
+    
+    const moveDir = moveVec.clone().normalize();
+    const currentPos = kartGroup.position.clone();
+    let nextPos = currentPos.clone().add(moveVec);
+    
+    const raycaster = new THREE.Raycaster();
+    
+    // 1. 進行方向の壁判定
+    raycaster.set(currentPos, moveDir);
+    let fwdHits = raycaster.intersectObjects(terrainObjects, false);
+    if (fwdHits.length > 0) {
+        const hit = fwdHits[0];
+        if (hit.distance < KRADR + moveDist) {
+            let hitN = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+            if (moveDir.dot(hitN) > 0) hitN.negate(); // 裏面からの接触補正
+            
+            // 角度差が 30度 (Math.PI / 6) を超えていれば壁として反射
+            if (hitN.angleTo(kartNormal) > Math.PI / 6 + 0.05) {
+                bounce3D(hitN);
+                nextPos = currentPos.clone().add(moveDir.multiplyScalar(Math.max(0, hit.distance - KRADR)));
+            }
+        }
+    }
+
+    // 2. 下方向の接地・スロープ判定
+    let rayOrigin, rayDir;
+    if (gravityMode === 'normal') {
+        rayOrigin = nextPos.clone().add(new THREE.Vector3(0, KRADR + 1.0, 0));
+        rayDir = new THREE.Vector3(0, -1, 0);
+    } else {
+        rayOrigin = nextPos.clone().addScaledVector(kartNormal, KRADR + 1.0);
+        rayDir = kartNormal.clone().negate();
+    }
+    raycaster.set(rayOrigin, rayDir);
+    let downHits = raycaster.intersectObjects(terrainObjects, false);
+    
+    grounded = false;
+    const searchDist = (KRADR + 1.0) + Math.max(0.5, Math.abs(vertVel * dt) * 2);
+    
+    if (downHits.length > 0) {
+        const hit = downHits[0];
+        if (hit.distance < searchDist) {
+            let hitN = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+            if (rayDir.dot(hitN) > 0) hitN.negate();
+            
+            let canLand;
+            if (gravityMode === 'normal') {
+                canLand = hitN.y > 0.01;
+            } else {
+                const wasAirborne = !wasGrounded;
+                canLand = hitN.angleTo(kartNormal) <= Math.PI / 6 + 0.05 || wasAirborne;
+            }
+            
+            if (canLand) {
+                kartNormal.copy(hitN);
+                alignForwardToNormal();
+                nextPos.copy(hit.point).addScaledVector(kartNormal, GND_Y);
+                grounded = true;
+                vertVel = 0;
+            }
+        }
+    }
+    
+    kartGroup.position.copy(nextPos);
+}
+
+/* ================================================================
+   VISUAL UPDATES
+   ================================================================ */
+function updateMesh(){
+  const right = getRight();
+  const mat = new THREE.Matrix4().makeBasis(right, kartNormal, kartForward);
+  kartGroup.quaternion.setFromRotationMatrix(mat);
+}
+
+function updateTilt(dt){
+  let tgt;
+  if(drifting){ tgt = THREE.MathUtils.degToRad(-P.driftTilt*driftDir); }
+  else { const h=gH(); tgt = THREE.MathUtils.degToRad(-h*8*clamp(Math.abs(fwdSpd)/P.maxFwdSpd,0,1)); }
+  bodyTilt = bodyTilt + (tgt - bodyTilt) * (dt*10);
+  kartBody.rotation.z = bodyTilt; // ローカル回転なのでそのまま適用可能
+}
+
+function updateFX(){
+  const kp=kartGroup.position;
+  const f=getFwd(), r=getRight();
+  if(drifting && spark>=1){
+    blueLight.position.copy(kp).addScaledVector(f, -1.1).addScaledVector(r, driftDir*0.7).addScaledVector(kartNormal, 0.15);
+    redLight.position.copy(blueLight.position);
+    blueLight.intensity=3.5; redLight.intensity=spark>=2?4.5:0;
+  } else { blueLight.intensity=redLight.intensity=0; }
+  boostLight.position.copy(kp).addScaledVector(kartNormal, 0.5);
+  boostLight.intensity=boostT>0?5:landBoostT>0?2.5:0;
+  const gc=glowStrip.material.color;
+  if(boostT>0) gc.setHex(0xff8800); else if(spark===2) gc.setHex(0xff2200); else if(spark===1) gc.setHex(0x0088ff); else gc.setHex(0x00ffcc);
+  document.getElementById('bflash').classList.toggle('on',boostT>0);
+  document.getElementById('dvign').classList.toggle('on',drifting);
+}
+
+const camPos=new THREE.Vector3(0,4,-6), camLook=new THREE.Vector3();
+function updateCamera(dt){
+  const f = getFwd(), n = kartNormal;
+  const dist = 5.5 + Math.abs(fwdSpd)*.08;
+  
+  const des = kartGroup.position.clone().addScaledVector(f, -dist).addScaledVector(n, 3.5);
+  camPos.lerp(des, Math.min(dt*6, 1));
+  camera.position.copy(camPos);
+  
+  const lookAt = kartGroup.position.clone().addScaledVector(f, 2.5).addScaledVector(n, 0.65);
+  camLook.lerp(lookAt, Math.min(dt*9, 1));
+  camera.lookAt(camLook);
+  
+  camera.up.lerp(n, dt*5).normalize();
+}
+
+function updateHUD(){
+  const elNum=document.getElementById('spd-num'), elSF=document.getElementById('sf'), elDF=document.getElementById('df'), elBF=document.getElementById('bf'), elSpk=document.getElementById('spark'), elS1=document.getElementById('s1'), elS2=document.getElementById('s2'), elS3=document.getElementById('s3');
+  const kmh=Math.abs(fwdSpd)*3.6; elNum.textContent=Math.round(kmh);
+  elSF.style.width=clamp(Math.abs(fwdSpd)/(P.maxFwdSpd+P.redBoostSpd)*100,0,100)+'%';
+  const dp=drifting?clamp(driftT/P.redSparkT*100,0,100):0; elDF.style.width=dp+'%';
+  elDF.style.background=spark===2?'#ff3300':spark===1?'#00aaff':'#00ffcc'; elDF.style.boxShadow=spark===2?'0 0 8px #ff3300':spark===1?'0 0 8px #00aaff':'0 0 6px #00ffcc';
+  const bMax=boostSpd===P.redBoostSpd?P.redBoostDur:P.blueBoostDur; elBF.style.width=boostT>0?clamp(boostT/bMax*100,0,100)+'%':'0%';
+  elSpk.className=''; if(spark===2){elSpk.textContent='★';elSpk.className='red';}else if(spark===1){elSpk.textContent='✦';elSpk.className='blue';}
+  elS1.textContent=drifting?`DRIFT ${spark===2?'RED MAX':spark===1?'BLUE':'CHARGING...'}`:'─';
+  elS2.textContent=boostT>0?`BOOST ${boostT.toFixed(1)}s`:landBoostT>0?'LANDING BONUS!':'─';
+  // 重力モード表示
+  if(gravityMode==='normal'){
+    elS3.textContent='NORMAL GRAV [G]';
+    elS3.style.color='rgba(255,160,0,0.95)';
+    elS3.style.textShadow='0 0 10px rgba(255,160,0,0.7)';
+  } else {
+    elS3.textContent='ANTI-GRAV [G]';
+    elS3.style.color='rgba(0,255,204,0.9)';
+    elS3.style.textShadow='0 0 10px rgba(0,255,204,0.6)';
+  }
+}
+
+/* ================================================================
+   MAIN LOOP
+   ================================================================ */
+let prevT=0;
+const titleEl=document.getElementById('title');
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=Math.min((ts-prevT)/1000, .05); prevT=ts;
+  if(dt<=0){renderer.render(scene,camera); return;}
+
+  if(!started && (gV()!==0||gH()!==0)){ started=true; titleEl.classList.add('hide'); }
+
+  onLanded();
+  doJump();
+  doDriftRelease();
+  doAirAction();
+  chargeTurbo(dt);
+  tickTimers(dt);
+  gravity(dt);
+  accelerate(dt);
+  steer(dt);
+  sideslip(dt);
+  commit(dt);
+
+  updateMesh();
+  updateTilt(dt);
+  updateFX();
+  updateCamera(dt);
+  updateHUD();
+
+  for(const k in pressed)  delete pressed[k];
+  for(const k in released) delete released[k];
+
+  renderer.render(scene,camera);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
