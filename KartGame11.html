@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>カートゲーム</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#020010;overflow:hidden;font-family:'Courier New',monospace;user-select:none;touch-action:none}
+canvas{display:block}
+
+/* ─── SCREENS ─── */
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:20;background:rgba(2,0,16,0.93);transition:opacity .3s,visibility .3s}
+.screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+.game-title{font-size:52px;font-weight:900;color:#00ffcc;letter-spacing:-2px;text-shadow:0 0 30px #00ffcc,0 0 80px rgba(0,255,204,.3);margin-bottom:8px;text-align:center}
+.title-sub{font-size:11px;letter-spacing:4px;color:rgba(0,255,204,.4);margin-bottom:4px}
+
+.btn{padding:13px 38px;font-family:'Courier New',monospace;font-size:15px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;border:2px solid #00ffcc;background:transparent;color:#00ffcc;cursor:pointer;transition:all .2s;text-shadow:0 0 10px rgba(0,255,204,.4);min-width:220px}
+.btn:hover{background:rgba(0,255,204,.12);box-shadow:0 0 22px rgba(0,255,204,.25);transform:translateY(-1px)}
+.btn:active{background:rgba(0,255,204,.25);transform:translateY(0) scale(0.98)}
+.btn-sm{padding:10px 26px;font-size:12px;letter-spacing:2px;min-width:140px;border-color:rgba(0,255,204,.45);color:rgba(0,255,204,.65)}
+.btn-start{border-color:#ffcc00;color:#ffcc00;text-shadow:0 0 12px rgba(255,204,0,.5);font-size:18px}
+.btn-start:hover{background:rgba(255,204,0,.12);box-shadow:0 0 24px rgba(255,204,0,.3)}
+.btn-start:disabled{opacity:.35;pointer-events:none}
+.btn-danger{border-color:rgba(255,80,80,.6);color:rgba(255,80,80,.9)}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+.field{padding:12px 20px;font-family:'Courier New',monospace;font-size:15px;letter-spacing:2px;background:rgba(0,255,204,.04);border:2px solid rgba(0,255,204,.35);color:#00ffcc;outline:none;width:280px;text-align:center;transition:border-color .2s}
+.field:focus{border-color:#00ffcc;box-shadow:0 0 16px rgba(0,255,204,.18)}
+.field::placeholder{color:rgba(0,255,204,.3)}
+
+.room-id-box{font-size:26px;font-weight:bold;color:#ffcc00;letter-spacing:5px;text-shadow:0 0 20px rgba(255,204,0,.5);border:2px solid rgba(255,204,0,.4);padding:12px 30px;background:rgba(255,204,0,.04);cursor:pointer;user-select:all;min-width:220px;text-align:center}
+.room-id-box:hover{background:rgba(255,204,0,.08)}
+
+.plist{width:300px;max-height:180px;overflow-y:auto}
+.pitem{padding:7px 14px;border-left:3px solid;font-size:12px;letter-spacing:1px;margin-bottom:4px;background:rgba(0,0,0,.25);display:flex;align-items:center;gap:10px}
+.pdot{width:8px;height:8px;border-radius:50%}
+
+.msg-warn{color:#ff9900;font-size:12px;letter-spacing:2px}
+.msg-err{color:#ff4444;font-size:12px;letter-spacing:1px}
+.msg-ok{color:#00ffcc;font-size:12px;letter-spacing:1px}
+.msg-gray{color:rgba(0,255,204,.45);font-size:11px;letter-spacing:2px}
+
+/* ─── IN-GAME HUD ─── */
+#topLeft{position:fixed;top:18px;left:18px;z-index:5;display:flex;align-items:flex-start;gap:20px;pointer-events:none}
+#spd{text-align:left}
+#spd-num{font-size:56px;font-weight:900;color:#00ffcc;text-shadow:0 0 20px #00ffcc,0 0 60px rgba(0,255,204,.35);line-height:1;letter-spacing:-3px}
+#spd-unit{font-size:10px;color:rgba(0,255,204,.55);letter-spacing:3px;margin-top:2px}
+#status{display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.sline{font-size:13px;letter-spacing:2px;color:rgba(0,255,204,.9);text-shadow:0 0 10px rgba(0,255,204,.6);font-weight:bold;white-space:nowrap}
+
+#hud{position:fixed;top:18px;right:18px;width:220px;z-index:5;pointer-events:none}
+.hrow{display:flex;align-items:center;margin-bottom:6px;gap:8px}
+.hlabel{font-size:9px;letter-spacing:3px;color:rgba(0,255,204,.45);width:50px;flex-shrink:0;text-align:right}
+.bbg{flex:1;height:6px;background:rgba(255,255,255,.04);border:1px solid rgba(0,255,204,.12);border-radius:3px;overflow:hidden}
+.bfill{height:100%;border-radius:3px;transition:width .07s linear,background .25s}
+#sf{background:#00ffcc;box-shadow:0 0 8px #00ffcc}
+#df{background:#00aaff;box-shadow:0 0 8px #00aaff}
+#bf{background:#ff8800;box-shadow:0 0 8px #ff8800}
+
+#spark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;font-size:54px;opacity:0;transition:opacity .15s;filter:drop-shadow(0 0 20px currentColor);z-index:5}
+#spark.blue{opacity:1;color:#00aaff}
+#spark.red{opacity:1;color:#ff4400}
+#bflash{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 70%,rgba(255,140,0,.22) 0%,transparent 65%);transition:opacity .12s;z-index:3}
+#bflash.on{opacity:1}
+#dvign{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,100,255,.15) 100%);transition:opacity .3s;z-index:3}
+#dvign.on{opacity:1}
+
+/* ─── LAP / RANK HUD ─── */
+#lapHUD{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:5;pointer-events:none;text-align:center;display:none}
+#lapNum{font-size:22px;font-weight:bold;color:#ffcc00;letter-spacing:3px;text-shadow:0 0 14px rgba(255,204,0,.5)}
+#lapSub{font-size:9px;letter-spacing:4px;color:rgba(255,204,0,.5)}
+
+#rankHUD{position:fixed;top:80px;right:18px;width:195px;z-index:5;pointer-events:none;display:none}
+.rk-title{font-size:9px;letter-spacing:3px;color:rgba(0,255,204,.4);margin-bottom:6px}
+.rk-row{display:flex;align-items:center;gap:8px;padding:4px 8px;margin-bottom:3px;background:rgba(0,0,0,.3);border-left:3px solid rgba(0,255,204,.25);font-size:11px;letter-spacing:1px;transition:border-color .3s}
+.rk-row.me{border-left-color:#ffcc00;background:rgba(255,204,0,.07)}
+.rk-pos{width:18px;text-align:center;font-weight:bold;color:rgba(0,255,204,.6)}
+.rk-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(0,255,204,.9)}
+.rk-info{font-size:9px;color:rgba(0,255,204,.45);white-space:nowrap}
+
+/* ─── COUNTDOWN ─── */
+#cdOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:15;pointer-events:none;opacity:0;transition:opacity .2s}
+#cdOverlay.on{opacity:1}
+#cdNum{font-size:150px;font-weight:900;color:#ffcc00;text-shadow:0 0 50px #ffcc00,0 0 120px rgba(255,204,0,.4);animation:popIn .7s ease-out}
+@keyframes popIn{from{transform:scale(2);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ─── ITEM NOTIF ─── */
+#itemBanner{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:bold;letter-spacing:3px;color:#ffcc00;text-shadow:0 0 18px rgba(255,204,0,.6);z-index:5;pointer-events:none;opacity:0;transition:opacity .3s}
+#itemBanner.show{opacity:1}
+
+/* ─── ITEM SLOT HUD ─── */
+#itemSlotHUD{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:5;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:4px}
+#itemSlotBox{width:64px;height:64px;border:2px solid rgba(255,204,0,.7);background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:36px;position:relative;border-radius:6px;box-shadow:0 0 16px rgba(255,204,0,.3)}
+#itemSlotBox.shield-mode{border-color:#00ffcc;box-shadow:0 0 20px rgba(0,255,204,.6);animation:shieldPulse .6s ease-in-out infinite alternate}
+#itemSlotBox.empty{opacity:.35;border-color:rgba(255,204,0,.2)}
+#itemCountBadge{position:absolute;top:2px;right:4px;font-size:11px;font-weight:bold;color:#ffcc00;font-family:'Courier New',monospace}
+#itemLabel{font-size:9px;letter-spacing:3px;color:rgba(255,204,0,.55)}
+#itemKeyHint{font-size:9px;letter-spacing:2px;color:rgba(255,204,0,.4)}
+@keyframes shieldPulse{from{box-shadow:0 0 10px rgba(0,255,204,.4)}to{box-shadow:0 0 30px rgba(0,255,204,.9)}}
+@keyframes starRainbow{0%{color:#ff0000}14%{color:#ff8800}28%{color:#ffff00}42%{color:#00ff44}57%{color:#00aaff}71%{color:#8800ff}85%{color:#ff00aa}100%{color:#ff0000}}
+.star-active .bfill{animation:starRainbow .4s linear infinite}
+#spinOverlay{position:fixed;inset:0;pointer-events:none;z-index:6;background:rgba(255,0,0,0);transition:background .1s;display:none}
+#spinOverlay.on{display:block;background:rgba(200,30,30,.18)}
+#thunderOverlay{position:fixed;inset:0;pointer-events:none;z-index:7;background:rgba(255,230,0,0);opacity:0;transition:opacity .1s}
+#thunderOverlay.on{opacity:1;background:rgba(255,230,0,.45)}
+
+/* ─── NET STATUS ─── */
+#netStatus{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:rgba(0,255,204,.35);z-index:5;pointer-events:none}
+
+/* ─── TOUCH CONTROLS ─── */
+#touchCtrl{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;z-index:10}
+#touchCtrl.active{opacity:1;pointer-events:auto}
+.touch-btn{position:fixed;width:70px;height:70px;border-radius:50%;border:2px solid rgba(0,255,204,.5);background:rgba(0,255,204,.15);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;color:rgba(0,255,204,.9);font-size:28px;font-weight:bold;touch-action:manipulation;bottom:20px;transition:transform .1s,background .2s}
+.touch-btn:active{transform:scale(.92);background:rgba(0,255,204,.3)}
+#touchL{left:20px}
+#touchR{left:100px}
+#touchGas{right:20px;border-color:rgba(0,255,150,.5);background:rgba(0,255,150,.15);font-size:32px}
+#touchBrake{right:100px;border-color:rgba(255,100,100,.5);background:rgba(255,100,100,.15);font-size:32px}
+#touchJump{left:50%;transform:translateX(-50%);width:75px;height:75px;border-color:rgba(255,200,0,.5);background:rgba(255,200,0,.15);font-size:13px;letter-spacing:1px}
+#touchGrav{right:20px;bottom:100px;border-color:rgba(200,100,255,.5);background:rgba(200,100,255,.15);font-size:14px;letter-spacing:1px}
+#touchItem{left:190px;border-color:rgba(255,204,0,.5);background:rgba(255,204,0,.15);font-size:13px;letter-spacing:1px;bottom:20px}
+#touchShield{left:190px;bottom:100px;width:60px;height:60px;font-size:11px;letter-spacing:1px;border-color:rgba(0,255,204,.4);background:rgba(0,255,204,.1)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- In-game HUD -->
+<div id="topLeft"><div id="spd"><div id="spd-num">0</div><div id="spd-unit">km / h</div></div><div id="status"><div class="sline" id="s1">─</div><div class="sline" id="s2">─</div><div class="sline" id="s3">ANTI-GRAV</div></div></div>
+<div id="hud"><div class="hrow"><span class="hlabel">SPEED</span><div class="bbg"><div id="sf" class="bfill" style="width:0%"></div></div></div><div class="hrow"><span class="hlabel">DRIFT</span><div class="bbg"><div id="df" class="bfill" style="width:0%"></div></div></div><div class="hrow"><span class="hlabel">BOOST</span><div class="bbg"><div id="bf" class="bfill" style="width:0%"></div></div></div></div>
+<div id="spark">★</div>
+<div id="bflash"></div>
+<div id="dvign"></div>
+<div id="lapHUD"><div id="lapNum">LAP 1</div><div id="lapSub">OF 3</div></div>
+<div id="rankHUD"><div class="rk-title">RANKING</div><div id="rankList"></div></div>
+<div id="cdOverlay"><div id="cdNum">3</div></div>
+<div id="itemBanner">⚡ SPEED BOOST!</div>
+<div id="itemSlotHUD">
+  <div id="itemSlotBox" class="empty"><span id="itemIcon">?</span><span id="itemCountBadge"></span></div>
+  <div id="itemLabel">ITEM SLOT</div>
+  <div id="itemKeyHint">[E] USE  [Q] SHIELD</div>
+</div>
+<div id="spinOverlay"></div>
+<div id="thunderOverlay"></div>
+<div id="netStatus"></div>
+
+<!-- Touch controls -->
+<div id="touchCtrl">
+  <div id="touchL" class="touch-btn">←</div>
+  <div id="touchR" class="touch-btn">→</div>
+  <div id="touchGas" class="touch-btn">↑</div>
+  <div id="touchBrake" class="touch-btn">↓</div>
+  <div id="touchJump" class="touch-btn">JUMP</div>
+  <div id="touchGrav" class="touch-btn">GRAV</div>
+  <div id="touchItem" class="touch-btn">ITEM</div>
+  <div id="touchShield" class="touch-btn">BACK</div>
+</div>
+
+<!-- ════ SCREENS ════ -->
+
+<!-- ID Setup -->
+<div id="scrIdSetup" class="screen">
+  <div class="game-title">カートゲーム</div>
+  <div class="msg-gray">プレイヤーIDを設定</div>
+  <input id="idSetupInput" class="field" type="text" maxlength="20" placeholder="例: mario123" autocomplete="off">
+  <div id="idSetupErr" class="msg-err" style="display:none"></div>
+  <button id="btnIdSetupOk" class="btn">決定</button>
+  <div class="msg-gray" style="font-size:10px">英数字・アンダースコア・ハイフン、2〜20文字</div>
+</div>
+
+<!-- Title -->
+<div id="scrTitle" class="screen hidden">
+  <div class="game-title">カートゲーム</div>
+  <div class="msg-gray">PLAYER: <span id="titlePlayerId"></span></div>
+  <button id="btnPlay" class="btn">プレイ</button>
+  <button id="btnChangeId" class="btn btn-sm" style="margin-top:4px">IDを変更</button>
+</div>
+
+<!-- Change ID -->
+<div id="scrChangeId" class="screen hidden">
+  <div class="game-title">カートゲーム</div>
+  <div class="msg-gray">IDを変更 / 現在: <span id="changeIdCurrent"></span></div>
+  <input id="changeIdInput" class="field" type="text" maxlength="20" placeholder="新しいID" autocomplete="off">
+  <div id="changeIdErr" class="msg-err" style="display:none"></div>
+  <div class="btn-row">
+    <button id="btnChangeIdOk" class="btn">変更</button>
+    <button id="btnChangeIdCancel" class="btn btn-sm">キャンセル</button>
+  </div>
+</div>
+
+<!-- Play Menu -->
+<div id="scrPlayMenu" class="screen hidden">
+  <div class="game-title">カートゲーム</div>
+  <button id="btnDemoCourse" class="btn">デモコース</button>
+  <button id="btnCourseSelect" class="btn">コースを選択</button>
+  <button id="btnHost" class="btn">ホスト</button>
+  <button id="btnJoin" class="btn">参加</button>
+  <button id="btnPlayBack" class="btn btn-sm" style="margin-top:4px">戻る</button>
+</div>
+
+<!-- Course Select -->
+<div id="scrCourseSelect" class="screen hidden">
+  <div class="game-title">コースを選択</div>
+  <button id="btnCourse0" class="btn">アリーナ（デモ）</button>
+  <button id="btnCourse1" class="btn" style="opacity:.5;cursor:default" disabled>サーキット <span style="font-size:10px;letter-spacing:1px">（近日公開）</span></button>
+  <button id="btnCourseBack" class="btn btn-sm" style="margin-top:4px">戻る</button>
+</div>
+
+<!-- Host Lobby -->
+<div id="scrHostLobby" class="screen hidden">
+  <div class="game-title">ルームを作成</div>
+  <div class="msg-gray">あなたのルームID（参加者に共有）</div>
+  <div id="hostRoomId" class="room-id-box" title="クリックでコピー">---</div>
+  <div class="msg-gray" style="margin-top:8px">接続中のプレイヤー</div>
+  <div id="hostPList" class="plist"></div>
+  <div id="hostStatus" class="msg-warn">接続待機中...</div>
+  <div class="btn-row" style="margin-top:4px">
+    <button id="btnStartRace" class="btn btn-start" disabled>START RACE</button>
+    <button id="btnHostCancel" class="btn btn-sm btn-danger">キャンセル</button>
+  </div>
+</div>
+
+<!-- Join Lobby -->
+<div id="scrJoinLobby" class="screen hidden">
+  <div class="game-title">ルームに参加</div>
+  <div class="msg-gray">ホストのルームID</div>
+  <input id="joinRoomInput" class="field" type="text" maxlength="20" placeholder="ルームID" autocomplete="off">
+  <div id="joinStatus" class="msg-warn" style="display:none"></div>
+  <div class="btn-row">
+    <button id="btnJoinConnect" class="btn">接続</button>
+    <button id="btnJoinCancel" class="btn btn-sm">戻る</button>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="scrResults" class="screen hidden">
+  <div class="game-title">レース結果</div>
+  <div id="resultsList" style="width:340px"></div>
+  <button id="btnResultsTitle" class="btn" style="margin-top:16px">タイトルへ</button>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+/* ================================================================
+   SECTION 1 — CONSTANTS
+   ================================================================ */
+const TOTAL_LAPS      = 3;
+const NUM_CP          = 4;
+const CP_RADIUS       = 19;
+const NET_INTERVAL    = 50;   // ms, 20Hz
+const ITEM_RESPAWN_MS = 8000;
+const ITEM_BOOST_SPD  = 10;
+const ITEM_BOOST_DUR  = 3.0;
+
+/* ── ITEM DEFINITIONS ── */
+const STAR_DUR   = 7.0;
+const BULLET_DUR = 8.0;
+const SPIN_DUR   = 1.8;
+const MUSH_SPD   = 14;
+const MUSH_DUR   = 2.5;
+const SHELL_SPD  = 30;
+const ITEM_NAMES = {
+  mushroom:'🍄 キノコ', triple_mushroom:'🍄×3 トリプル',
+  banana:'🍌 バナナ', green_shell:'🟢 緑こうら',
+  red_shell:'🔴 赤こうら', star:'⭐ スター',
+  bullet:'🚀 キラー', thunder:'⚡ サンダー', coin:'🪙 コイン',
+};
+const ITEM_EMOJI = {
+  mushroom:'🍄', triple_mushroom:'🍄', banana:'🍌',
+  green_shell:'🐢', red_shell:'🐚', star:'⭐',
+  bullet:'🚀', thunder:'⚡', coin:'🪙',
+};
+const ITEM_TABLE = [
+  // top (rank 1-3)
+  [{item:'mushroom',w:25},{item:'green_shell',w:28},{item:'coin',w:27},{item:'banana',w:20}],
+  // mid (rank 4-6)
+  [{item:'red_shell',w:30},{item:'triple_mushroom',w:30},{item:'star',w:40}],
+  // bottom (rank 7+)
+  [{item:'star',w:30},{item:'bullet',w:35},{item:'thunder',w:35}],
+];
+const GND_Y           = 0.38;
+const KRADR           = 0.75;
+const ARENA           = 100;
+
+const PLAYER_COLORS = [
+  {body:0xcc1100,glow:0x00ffcc,hex:'#cc1100'},
+  {body:0x1155ee,glow:0x66bbff,hex:'#1155ee'},
+  {body:0x00aa33,glow:0xaaff55,hex:'#00aa33'},
+  {body:0xcc7700,glow:0xffdd55,hex:'#cc7700'},
+  {body:0x9911bb,glow:0xee88ff,hex:'#9911bb'},
+  {body:0x009988,glow:0x55ffee,hex:'#009988'},
+];
+
+// Checkpoints (race is clockwise: south→east→north→west→south)
+const CHECKPOINTS = [
+  {pos:new THREE.Vector3(0, 1, 72),  r:CP_RADIUS, col:0xffcc00},
+  {pos:new THREE.Vector3(72, 1, 0),  r:CP_RADIUS, col:0x0088ff},
+  {pos:new THREE.Vector3(0, 1,-72),  r:CP_RADIUS, col:0x00cc44},
+  {pos:new THREE.Vector3(-72,1, 0),  r:CP_RADIUS, col:0xaa44ff},
+];
+
+const ITEM_DEFS = [
+  [38, 0.9, 38],[-38,0.9, 38],[0,0.9, 55],
+  [38, 0.9,-38],[-38,0.9,-38],[0,0.9,-55],
+];
+
+// Start positions for up to 6 players
+const START_POS = [
+  [0,GND_Y,62],[ 5,GND_Y,66],[-5,GND_Y,66],
+  [0,GND_Y,70],[ 5,GND_Y,74],[-5,GND_Y,74],
+];
+const START_FWD = new THREE.Vector3(1,0,0); // face east toward CP1
+
+/* ================================================================
+   SECTION 2 — GAME STATE
+   ================================================================ */
+let myId        = '';
+let mySlot      = 0;
+let isHost      = false;
+let gameMode    = 'solo'; // 'solo' | 'multi'
+let peer        = null;
+let hostConn    = null;          // client→host connection
+let conns       = new Map();     // host: peerId→DataConn
+let remotePlayers = new Map();   // peerId→PlayerState
+let playerSlots   = [];          // ordered [myId, ...clientIds] for color/start
+
+let physicsEnabled = false;
+let raceStarted    = false;
+let raceFinished   = false;
+let raceResults    = [];
+
+// My race progress
+let passedCP    = 0;  // total checkpoints passed (0..TOTAL_LAPS*NUM_CP)
+let nextCPIdx   = 1;  // next checkpoint index to pass (1 after race start)
+let myRaceTime  = 0;
+let lastSendTime = 0;
+
+// Physics state (from KartGame8)
+const P = {
+  maxFwdSpd:20,maxRevSpd:8,accel:18,brakeDecel:30,natDecel:9,
+  steerLow:2.09,steerHigh:.87,jumpForce:8.0,gravMult:3.0,
+  driftSteerMult:1.8,driftSlip:8.0,maxSlip:5.0,driftTilt:22.0,
+  blueSparkT:1.5,redSparkT:3.5,blueBoostSpd:8,redBoostSpd:14,
+  blueBoostDur:1.2,redBoostDur:2.0,landBoostSpd:4,landBoostDur:.5,wallBounce:.4,
+};
+let kartForward = new THREE.Vector3(1,0,0);
+let kartNormal  = new THREE.Vector3(0,1,0);
+let fwdSpd=0,vertVel=0,latSpd=0;
+let grounded=true,wasGrounded=true;
+let drifting=false,driftPend=false,driftDir=0,driftT=0,spark=0;
+let boostSpd=0,boostT=0,landBoostT=0,airAction=false,itemBoostT=0;
+let bodyTilt=0;
+let gravityMode='antigravity';
+
+/* ── ITEM SYSTEM STATE ── */
+let heldItem   = null;
+let heldCount  = 0;
+let starMode   = false, starTimer = 0;
+let bulletMode = false, bulletTimer = 0;
+let spinTimer  = 0;
+let shieldMode = false;   // throwable equipped behind as shield
+let shieldMesh = null;    // THREE.Mesh shown behind kart
+const itemProjectiles = [];  // active shells
+const bananaObjs      = [];  // placed bananas
+let starFlashT = 0;
+let itemKeyDownT = -1;   // timestamp when E was pressed
+
+/* ================================================================
+   SECTION 3 — THREE.JS SETUP
+   ================================================================ */
+const canvas   = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x020010);
+scene.fog = new THREE.FogExp2(0x020010,.006);
+
+const camera = new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,800);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+scene.add(new THREE.AmbientLight(0x221155,.9));
+const sun=new THREE.DirectionalLight(0x9977ff,1.2);
+sun.position.set(40,120,-60);sun.castShadow=true;
+Object.assign(sun.shadow.camera,{left:-130,right:130,top:130,bottom:-130,near:1,far:300});
+sun.shadow.mapSize.setScalar(2048);scene.add(sun);
+
+const blueLight  = new THREE.PointLight(0x00aaff,0,7);scene.add(blueLight);
+const redLight   = new THREE.PointLight(0xff3300,0,7);scene.add(redLight);
+const boostLight = new THREE.PointLight(0xff8800,0,9);scene.add(boostLight);
+
+/* ================================================================
+   SECTION 4 — COURSE / TERRAIN
+   ================================================================ */
+const terrainObjects = [];
+function addTerrain(m){scene.add(m);terrainObjects.push(m);}
+
+// Ground
+const gndGeo = new THREE.PlaneGeometry(ARENA*2,ARENA*2);
+gndGeo.rotateX(-Math.PI/2);
+const gnd = new THREE.Mesh(gndGeo,new THREE.MeshPhongMaterial({color:0x030018,emissive:0x010009,side:THREE.DoubleSide}));
+gnd.receiveShadow=true; addTerrain(gnd);
+
+// Outer walls
+const wMat=new THREE.MeshPhongMaterial({color:0x0c0036,emissive:0x1a0055});
+const S=ARENA,WH=20,WT=2.0;
+[[0,WH/2,S,S*2+WT*2,WH,WT],[0,WH/2,-S,S*2+WT*2,WH,WT],[S,WH/2,0,WT,WH,S*2],[-S,WH/2,0,WT,WH,S*2]]
+.forEach(([px,py,pz,sx,sy,sz])=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),wMat);
+  m.position.set(px,py,pz);m.castShadow=m.receiveShadow=true;addTerrain(m);
+});
+
+// Center obstacles
+const obsMat=new THREE.MeshPhongMaterial({color:0x2a0044,emissive:0x100022});
+[[40,40,10,10],[-40,40,10,10],[40,-40,10,10],[-40,-40,10,10]].forEach(([px,pz,w,d])=>{
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,8,d),obsMat);
+  m.position.set(px,4,pz);m.castShadow=m.receiveShadow=true;addTerrain(m);
+});
+
+// Full pipe (from original)
+const pipeGeo=new THREE.CylinderGeometry(20,20,50,24,1,true);
+pipeGeo.rotateZ(Math.PI/2);
+const pipe=new THREE.Mesh(pipeGeo,new THREE.MeshPhongMaterial({color:0x4400aa,emissive:0x110033,side:THREE.DoubleSide}));
+pipe.position.set(0,20,-55);pipe.receiveShadow=pipe.castShadow=true;addTerrain(pipe);
+
+// Half-pipe
+const hPipeGeo=new THREE.CylinderGeometry(30,30,50,24,1,true,0,Math.PI);
+hPipeGeo.rotateZ(Math.PI/2);hPipeGeo.rotateY(Math.PI/4);
+const hPipe=new THREE.Mesh(hPipeGeo,new THREE.MeshPhongMaterial({color:0x008855,emissive:0x002211,side:THREE.DoubleSide}));
+hPipe.position.set(-45,30,45);hPipe.receiveShadow=hPipe.castShadow=true;addTerrain(hPipe);
+
+// Stars
+const sPts=new Float32Array(1200*3);
+for(let i=0;i<1200;i++){sPts[i*3]=(Math.random()-.5)*800;sPts[i*3+1]=Math.random()*200+10;sPts[i*3+2]=(Math.random()-.5)*800;}
+const sGeo=new THREE.BufferGeometry();sGeo.setAttribute('position',new THREE.BufferAttribute(sPts,3));
+scene.add(new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xffffff,size:.15})));
+
+// Start/finish line
+const sfLineMat = new THREE.MeshBasicMaterial({color:0xffcc00});
+const sfLine = new THREE.Mesh(new THREE.BoxGeometry(12,.05,.5),sfLineMat);
+sfLine.position.set(0,.01,68);scene.add(sfLine);
+
+// Checkpoint gate visuals
+CHECKPOINTS.forEach((cp,i)=>{
+  const mat=new THREE.MeshBasicMaterial({color:cp.col,transparent:true,opacity:.7});
+  const poleGeo=new THREE.CylinderGeometry(.25,.25,6,8);
+  [-6,6].forEach(ox=>{
+    const pole=new THREE.Mesh(poleGeo,mat);
+    pole.position.set(cp.pos.x+ox*(i%2===0?1:0),3,cp.pos.z+ox*(i%2!==0?1:0));
+    scene.add(pole);
+  });
+  const barMat=new THREE.MeshBasicMaterial({color:cp.col,transparent:true,opacity:.5});
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(i%2===0?12:.5,.4,i%2===0?.5:12),barMat);
+  bar.position.set(cp.pos.x,6.2,cp.pos.z);scene.add(bar);
+});
+
+/* ================================================================
+   SECTION 5 — ITEM BOXES
+   ================================================================ */
+const itemActive = new Array(ITEM_DEFS.length).fill(true);
+const itemMeshes = [];
+const itemBoxGeo = new THREE.BoxGeometry(1.4,1.4,1.4);
+
+ITEM_DEFS.forEach(([x,y,z],i)=>{
+  const mat = new THREE.MeshPhongMaterial({color:0xffdd00,emissive:0x443300,shininess:200,transparent:true,opacity:.92});
+  const m = new THREE.Mesh(itemBoxGeo,mat);
+  m.position.set(x,y,z);m.castShadow=true;scene.add(m);
+  itemMeshes.push(m);
+});
+
+function updateItemMeshes(){
+  itemMeshes.forEach((m,i)=>{ m.visible=itemActive[i]; });
+}
+
+function checkItemCollision(){
+  if(!physicsEnabled||raceFinished) return;
+  const kpos = kartGroup.position;
+  itemMeshes.forEach((m,i)=>{
+    if(!itemActive[i]) return;
+    if(kpos.distanceTo(m.position)<2.0){
+      collectItem(i);
+    }
+  });
+}
+
+function collectItem(idx){
+  if(!itemActive[idx]) return;
+  itemActive[idx]=false;
+  updateItemMeshes();
+
+  // ── LOTTERY based on rank ──
+  if(!heldItem){
+    const rank = getMyRank();
+    const tier = rank<=3?0:rank<=6?1:2;
+    const table = ITEM_TABLE[tier];
+    const total = table.reduce((s,e)=>s+e.w,0);
+    let r=Math.random()*total;
+    let chosen=table[table.length-1].item;
+    for(const e of table){r-=e.w;if(r<=0){chosen=e.item;break;}}
+    heldItem=chosen;
+    heldCount=chosen==='triple_mushroom'?3:1;
+    updateItemHUD();
+    showItemBanner('GET: '+ITEM_NAMES[chosen]);
+  }
+
+  const msg={t:'item',action:'off',idx};
+  if(isHost){broadcastToAll(msg,null);scheduleItemRespawn(idx);}
+  else if(hostConn) hostConn.send(msg);
+}
+
+function getMyRank(){
+  const rankings=getRankings();
+  const idx=rankings.findIndex(r=>r.me);
+  return idx>=0?idx+1:1;
+}
+
+function consumeItem(){
+  heldItem=null;heldCount=0;
+  shieldMode=false;
+  if(shieldMesh){scene.remove(shieldMesh);shieldMesh=null;}
+  updateItemHUD();
+}
+
+/* ── ITEM USE ── */
+function useItem(asShield){
+  if(!heldItem||spinTimer>0||bulletMode) return;
+  const throwable=['green_shell','red_shell','banana'];
+  if(asShield && throwable.includes(heldItem)){
+    toggleShieldMode();
+    return;
+  }
+  // If already in shield mode and tapped, launch from behind
+  if(shieldMode){
+    shieldMode=false;
+    if(shieldMesh){scene.remove(shieldMesh);shieldMesh=null;}
+  }
+  switch(heldItem){
+    case 'coin':
+      fwdSpd=Math.min(fwdSpd+4,P.maxFwdSpd);
+      showItemBanner('🪙 COIN DASH!');
+      consumeItem();break;
+    case 'mushroom':
+      activateMushroom();consumeItem();break;
+    case 'triple_mushroom':
+      activateMushroom();
+      heldCount--;
+      if(heldCount<=0) consumeItem();
+      else updateItemHUD();
+      break;
+    case 'green_shell':
+      launchShell('green',false);consumeItem();break;
+    case 'red_shell':
+      launchShell('red',false);consumeItem();break;
+    case 'banana':
+      placeBanana(false);consumeItem();break;
+    case 'star':
+      activateStar();consumeItem();break;
+    case 'bullet':
+      activateBullet();consumeItem();break;
+    case 'thunder':
+      activateThunder();consumeItem();break;
+  }
+}
+
+function toggleShieldMode(){
+  if(!heldItem) return;
+  shieldMode=!shieldMode;
+  if(shieldMode){
+    // Create shield mesh behind kart
+    const isShell=heldItem.includes('shell');
+    const geo=isShell?new THREE.SphereGeometry(.45,8,8):new THREE.BoxGeometry(.6,.4,.6);
+    const col=heldItem==='green_shell'?0x00cc44:heldItem==='red_shell'?0xee2200:0xffdd00;
+    const mat=new THREE.MeshPhongMaterial({color:col,emissive:new THREE.Color(col).multiplyScalar(.3)});
+    shieldMesh=new THREE.Mesh(geo,mat);
+    scene.add(shieldMesh);
+  } else {
+    if(shieldMesh){scene.remove(shieldMesh);shieldMesh=null;}
+  }
+  updateItemHUD();
+}
+
+/* ── MUSHROOM ── */
+function activateMushroom(){
+  itemBoostT=MUSH_DUR;
+  showItemBanner('🍄 DASH!');
+}
+
+/* ── SHELLS ── */
+function launchShell(type, fromBehind){
+  const fwd=getFwd().clone();
+  const pos=kartGroup.position.clone().addScaledVector(fwd,fromBehind?-2.5:2.5).addScaledVector(kartNormal,.4);
+  const vel=fwd.clone().multiplyScalar(fromBehind?-SHELL_SPD:SHELL_SPD).addScaledVector(kartNormal,0);
+  // horizontal only
+  vel.y=0;
+
+  const isRed=type==='red';
+  const col=isRed?0xee2200:0x00cc44;
+  const geo=new THREE.SphereGeometry(.45,8,8);
+  const mat=new THREE.MeshPhongMaterial({color:col,emissive:new THREE.Color(col).multiplyScalar(.4),shininess:200});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.copy(pos);
+  mesh.castShadow=true;
+  scene.add(mesh);
+
+  // Point light on shell
+  const light=new THREE.PointLight(col,.8,5);
+  mesh.add(light);
+
+  // Target for red shell
+  let targetId=null;
+  if(isRed){
+    let minDist=Infinity;
+    remotePlayers.forEach((p,id)=>{
+      const d=kartGroup.position.distanceTo(p.mesh.position);
+      if(d<minDist){minDist=d;targetId=id;}
+    });
+  }
+
+  itemProjectiles.push({mesh,pos:pos.clone(),vel,type,bounces:0,targetId,life:8});
+}
+
+/* ── BANANA ── */
+function placeBanana(fromShield){
+  const fwd=getFwd().clone();
+  const pos=kartGroup.position.clone().addScaledVector(fwd,-2.0);
+  pos.y=GND_Y;
+
+  const geo=new THREE.SphereGeometry(.4,8,8);
+  const mat=new THREE.MeshPhongMaterial({color:0xffee00,emissive:0x554400});
+  const mesh=new THREE.Mesh(geo,mat);
+  // Squash into banana peel shape
+  mesh.scale.set(1.6,.35,1.6);
+  mesh.position.copy(pos);
+  scene.add(mesh);
+  bananaObjs.push({mesh,pos:pos.clone()});
+}
+
+/* ── STAR ── */
+function activateStar(){
+  starMode=true;starTimer=STAR_DUR;
+  showItemBanner('⭐ STAR!');
+}
+
+/* ── BULLET KILLER ── */
+function activateBullet(){
+  bulletMode=true;bulletTimer=BULLET_DUR;
+  fwdSpd=P.maxFwdSpd; // instant max
+  showItemBanner('🚀 BULLET KILLER!');
+}
+
+/* ── THUNDER ── */
+function activateThunder(){
+  showItemBanner('⚡ THUNDER!');
+  flashThunder();
+  // Hit all remote players (slow/spin them in multiplayer)
+  const msg={t:'thunder',id:myId};
+  if(isHost) broadcastToAll(msg,null);
+  else if(hostConn) hostConn.send(msg);
+}
+function flashThunder(){
+  const el=document.getElementById('thunderOverlay');
+  el.classList.add('on');
+  setTimeout(()=>{el.classList.remove('on');setTimeout(()=>{el.classList.add('on');setTimeout(()=>el.classList.remove('on'),120);},200);},120);
+}
+
+/* ── SPIN (being hit) ── */
+function applySpin(){
+  if(starMode) return; // invincible
+  fwdSpd*=-0.25;
+  latSpd=(Math.random()>.5?1:-1)*6;
+  spinTimer=SPIN_DUR;
+  boostT=0;itemBoostT=0;
+  document.getElementById('spinOverlay').classList.add('on');
+}
+
+/* ── SHIELD BLOCK ── */
+function checkShieldBlock(proj){
+  // proj coming from behind?
+  const toProj=new THREE.Vector3().subVectors(proj.pos,kartGroup.position).normalize();
+  const dot=toProj.dot(getFwd());
+  if(dot<-0.3 && shieldMode){
+    // Shield absorbs it
+    scene.remove(proj.mesh);
+    shieldMode=false;
+    if(shieldMesh){scene.remove(shieldMesh);shieldMesh=null;}
+    consumeItem();
+    return true;
+  }
+  return false;
+}
+
+/* ── PROJECTILE UPDATE ── */
+function updateProjectiles(dt){
+  const raycaster=new THREE.Raycaster();
+  for(let i=itemProjectiles.length-1;i>=0;i--){
+    const p=itemProjectiles[i];
+    p.life-=dt;
+    if(p.life<=0){scene.remove(p.mesh);itemProjectiles.splice(i,1);continue;}
+
+    // Red shell homing
+    if(p.type==='red' && p.targetId){
+      const tp=remotePlayers.get(p.targetId);
+      const targetPos=tp?tp.mesh.position.clone():null;
+      if(targetPos){
+        const dir=new THREE.Vector3().subVectors(targetPos,p.pos).normalize();
+        dir.y=0;dir.normalize();
+        const turnSpeed=3*dt;
+        p.vel.lerp(dir.clone().multiplyScalar(SHELL_SPD),turnSpeed).normalize().multiplyScalar(SHELL_SPD);
+        p.vel.y=0;
+      }
+    }
+
+    // Move
+    const moveVec=p.vel.clone().multiplyScalar(dt);
+    const nextPos=p.pos.clone().add(moveVec);
+
+    // Wall collision (green shell bounces)
+    if(p.type==='green'){
+      raycaster.set(p.pos,p.vel.clone().normalize());
+      const hits=raycaster.intersectObjects(terrainObjects,false);
+      if(hits.length>0 && hits[0].distance < SHELL_SPD*dt+0.6){
+        if(p.bounces<6){
+          const wn=hits[0].face.normal.clone().transformDirection(hits[0].object.matrixWorld).normalize();
+          p.vel.reflect(wn);
+          p.vel.y=0;
+          p.bounces++;
+        } else {
+          scene.remove(p.mesh);itemProjectiles.splice(i,1);continue;
+        }
+      }
+    }
+
+    // Check hit vs my kart
+    if(nextPos.distanceTo(kartGroup.position)<1.4){
+      if(!checkShieldBlock(p)){
+        applySpin();
+      }
+      // Explode
+      scene.remove(p.mesh);itemProjectiles.splice(i,1);continue;
+    }
+
+    // Update position
+    p.pos.copy(nextPos);
+    p.mesh.position.copy(nextPos);
+    p.mesh.position.y=GND_Y+0.4;
+    p.mesh.rotation.y+=dt*5;
+  }
+}
+
+/* ── BANANA COLLISION UPDATE ── */
+function updateBananas(dt){
+  for(let i=bananaObjs.length-1;i>=0;i--){
+    const b=bananaObjs[i];
+    if(kartGroup.position.distanceTo(b.pos)<1.4){
+      applySpin();
+      scene.remove(b.mesh);bananaObjs.splice(i,1);continue;
+    }
+    // Check remote players hitting banana (visual only—not synced in this impl)
+    remotePlayers.forEach((p,id)=>{
+      if(p.mesh.position.distanceTo(b.pos)<1.5){
+        scene.remove(b.mesh);bananaObjs.splice(i,1);
+      }
+    });
+  }
+}
+
+/* ── SHIELD MESH FOLLOW ── */
+function updateShieldMesh(){
+  if(!shieldMesh||!shieldMode) return;
+  const behind=kartGroup.position.clone().addScaledVector(getFwd(),-2.0).addScaledVector(kartNormal,.3);
+  shieldMesh.position.copy(behind);
+  shieldMesh.rotation.y+=0.04;
+}
+
+/* ── ITEM HUD UPDATE ── */
+function updateItemHUD(){
+  const box=document.getElementById('itemSlotBox');
+  const icon=document.getElementById('itemIcon');
+  const badge=document.getElementById('itemCountBadge');
+  if(!heldItem){
+    box.className='empty';icon.textContent='?';badge.textContent='';
+  } else {
+    box.className=shieldMode?'shield-mode':'';
+    icon.textContent=ITEM_EMOJI[heldItem]||'?';
+    badge.textContent=heldCount>1?'×'+heldCount:'';
+  }
+}
+
+/* ── STAR VISUAL ── */
+let starColorIdx=0;
+const starColors=[0xff0000,0xff8800,0xffff00,0x00ff44,0x00aaff,0x8800ff,0xff00aa];
+function updateStarFX(dt){
+  if(!starMode) return;
+  starFlashT+=dt;
+  if(starFlashT>0.08){
+    starFlashT=0;
+    starColorIdx=(starColorIdx+1)%starColors.length;
+    const gc=kartBody.children.find(c=>c.material&&c.material.type==='MeshBasicMaterial');
+    if(gc) gc.material.color.setHex(starColors[starColorIdx]);
+  }
+}
+
+/* ── BULLET AUTO-PILOT ── */
+function updateBulletPilot(dt){
+  if(!bulletMode) return;
+  // Steer toward next checkpoint
+  const target=CHECKPOINTS[nextCPIdx];
+  if(!target) return;
+  const toTarget=new THREE.Vector3().subVectors(target.pos,kartGroup.position);
+  toTarget.y=0;toTarget.normalize();
+  const fwd=getFwd().clone();fwd.y=0;fwd.normalize();
+  const cross=new THREE.Vector3().crossVectors(fwd,toTarget);
+  const turnAmt=Math.sign(cross.y)*Math.min(Math.abs(cross.y)*3,1)*dt*2.5;
+  kartForward.applyAxisAngle(kartNormal,turnAmt).normalize();
+
+  // Push remote players away
+  remotePlayers.forEach((p)=>{
+    const d=kartGroup.position.distanceTo(p.mesh.position);
+    if(d<3.0){
+      // Apply visual push (they'd need to handle their own physics)
+      // For visual, we nudge their mesh
+      const dir=new THREE.Vector3().subVectors(p.mesh.position,kartGroup.position).normalize();
+      p.mesh.position.addScaledVector(dir,dt*20);
+    }
+  });
+}
+
+function scheduleItemRespawn(idx){
+  setTimeout(()=>{
+    itemActive[idx]=true;
+    updateItemMeshes();
+    broadcastToAll({t:'item',action:'on',idx},null);
+  },ITEM_RESPAWN_MS);
+}
+
+let itemBannerTimer=null;
+function showItemBanner(msg){
+  const el=document.getElementById('itemBanner');
+  if(msg) el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(itemBannerTimer);
+  itemBannerTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+/* ================================================================
+   SECTION 6 — KART MESH FACTORY
+   ================================================================ */
+function createKartMesh(bodyColor=0xcc1100,glowColor=0x00ffcc){
+  const g=new THREE.Group();
+  const b=new THREE.Group();
+
+  const mBody=new THREE.MeshPhongMaterial({color:bodyColor,emissive:new THREE.Color(bodyColor).multiplyScalar(.18),shininess:160});
+  const mCock=new THREE.MeshPhongMaterial({color:0x000e22,emissive:0x001133,shininess:200});
+  const mWhl =new THREE.MeshPhongMaterial({color:0x181818,shininess:60});
+  const mGlow=new THREE.MeshBasicMaterial({color:glowColor});
+
+  const mkBox=(w,h,d,mat,x=0,y=0,z=0)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;return m;
+  };
+  b.add(mkBox(1.22,.44,2.0, mBody));
+  b.add(mkBox(.72,.32,.88,  mCock,0,.37,-.08));
+  b.add(mkBox(.92,.27,.52,  mBody,0,-.07,.87));
+  b.add(mkBox(1.32,.08,.18, mBody,0,.32,-.85));
+  b.add(mkBox(.08,.34,.08,  mBody,0,.15,-.82));
+  b.add(mkBox(1.0,.04,1.75, mGlow,0,-.24,0));
+
+  const wGeo=new THREE.CylinderGeometry(.28,.28,.2,12);
+  [[-.73,-.2,.72],[.73,-.2,.72],[-.73,-.2,-.72],[.73,-.2,-.72]].forEach(([x,y,z])=>{
+    const w=new THREE.Mesh(wGeo,mWhl);w.rotation.z=Math.PI/2;w.position.set(x,y,z);w.castShadow=true;b.add(w);
+  });
+
+  g.add(b);
+  g.userData.kartBody=b;
+  return g;
+}
+
+// My kart
+const kartGroup = createKartMesh(PLAYER_COLORS[0].body,PLAYER_COLORS[0].glow);
+const kartBody  = kartGroup.userData.kartBody;
+kartGroup.position.set(0,GND_Y,62);
+scene.add(kartGroup);
+
+/* ================================================================
+   SECTION 7 — REMOTE PLAYER MANAGEMENT
+   ================================================================ */
+function spawnRemotePlayer(id,slot){
+  if(remotePlayers.has(id)) return;
+  const ci = slot % PLAYER_COLORS.length;
+  const col = PLAYER_COLORS[ci];
+  const mesh = createKartMesh(col.body,col.glow);
+  const sp = START_POS[slot] || START_POS[0];
+  mesh.position.set(sp[0],sp[1],sp[2]);
+  scene.add(mesh);
+
+  // Name label (simple canvas sprite)
+  const nameSprite = makeNameSprite(id,col.hex);
+  mesh.add(nameSprite);
+
+  remotePlayers.set(id,{
+    id,slot,mesh,
+    pos:new THREE.Vector3(sp[0],sp[1],sp[2]),
+    targetPos:new THREE.Vector3(sp[0],sp[1],sp[2]),
+    quat:new THREE.Quaternion(),
+    targetQuat:new THREE.Quaternion(),
+    passedCP:0,
+    finished:false,
+  });
+}
+
+function makeNameSprite(text,color){
+  const cv=document.createElement('canvas');cv.width=256;cv.height=64;
+  const ctx=cv.getContext('2d');
+  ctx.font='bold 28px monospace';
+  ctx.fillStyle=color||'#00ffcc';
+  ctx.textAlign='center';
+  ctx.fillText(text,128,44);
+  const tex=new THREE.CanvasTexture(cv);
+  const mat=new THREE.SpriteMaterial({map:tex,depthTest:false});
+  const sprite=new THREE.Sprite(mat);
+  sprite.scale.set(3,0.75,1);
+  sprite.position.set(0,1.8,0);
+  return sprite;
+}
+
+function removeRemotePlayer(id){
+  const p=remotePlayers.get(id);
+  if(!p) return;
+  scene.remove(p.mesh);
+  remotePlayers.delete(id);
+}
+
+function updateRemotePlayers(dt){
+  remotePlayers.forEach(p=>{
+    p.pos.lerp(p.targetPos,Math.min(dt*12,1));
+    p.quat.slerp(p.targetQuat,Math.min(dt*12,1));
+    p.mesh.position.copy(p.pos);
+    p.mesh.quaternion.copy(p.quat);
+    // Spin item-box refs (handled separately)
+  });
+}
+
+function quatFromVecs(fwd,normal){
+  const right=new THREE.Vector3().crossVectors(normal,fwd).normalize();
+  const mat=new THREE.Matrix4().makeBasis(right,normal,fwd);
+  return new THREE.Quaternion().setFromRotationMatrix(mat);
+}
+
+/* ================================================================
+   SECTION 8 — CHECKPOINT & RANKING
+   ================================================================ */
+function checkCheckpoints(){
+  if(!physicsEnabled||raceFinished) return;
+  const kpos=kartGroup.position;
+  const target=CHECKPOINTS[nextCPIdx];
+  if(!target) return;
+  const d=kpos.distanceTo(target.pos);
+  if(d < target.r){
+    passedCP++;
+    nextCPIdx=(nextCPIdx+1)%NUM_CP;
+    updateLapHUD();
+    if(passedCP>=TOTAL_LAPS*NUM_CP) finishRace();
+  }
+}
+
+function updateLapHUD(){
+  const lap=Math.min(Math.floor(passedCP/NUM_CP)+1,TOTAL_LAPS);
+  document.getElementById('lapNum').textContent='LAP '+lap;
+  document.getElementById('lapSub').textContent='OF '+TOTAL_LAPS;
+}
+
+function getMyProgress(){return passedCP;}
+
+function getRankings(){
+  const all=[];
+  // My entry
+  all.push({id:myId,passedCP,finished:raceFinished,me:true});
+  // Remote players
+  remotePlayers.forEach(p=>{
+    all.push({id:p.id,passedCP:p.passedCP,finished:p.finished,me:false});
+  });
+  // Sort: more passedCP = better. If tied, nothing else (could add distance)
+  all.sort((a,b)=>b.passedCP-a.passedCP);
+  return all;
+}
+
+function updateRankHUD(){
+  const rankings=getRankings();
+  const el=document.getElementById('rankList');
+  el.innerHTML='';
+  rankings.forEach((r,i)=>{
+    const lap=Math.min(Math.floor(r.passedCP/NUM_CP)+1,TOTAL_LAPS);
+    const div=document.createElement('div');
+    div.className='rk-row'+(r.me?' me':'');
+    div.innerHTML=`<div class="rk-pos">${i+1}</div><div class="rk-name">${r.id}</div><div class="rk-info">LAP${lap}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function finishRace(){
+  if(raceFinished) return;
+  raceFinished=true;
+  physicsEnabled=false;
+  const msg={t:'finish',id:myId,time:myRaceTime};
+  if(isHost){ broadcastToAll(msg,null); collectResult(myId,myRaceTime); }
+  else if(hostConn) hostConn.send(msg);
+}
+
+function collectResult(id,time){
+  if(raceResults.find(r=>r.id===id)) return;
+  raceResults.push({id,time,place:raceResults.length+1});
+  if(isHost && raceResults.length>= remotePlayers.size+1){
+    setTimeout(showResults,2000);
+  }
+}
+
+function showResults(){
+  const list=document.getElementById('resultsList');
+  list.innerHTML='';
+  raceResults.forEach((r,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText=`display:flex;align-items:center;gap:12px;padding:10px 16px;border-left:3px solid ${i===0?'#ffcc00':'rgba(0,255,204,.3)'};background:${i===0?'rgba(255,204,0,.08)':'rgba(0,0,0,.3)'};margin-bottom:6px;font-size:14px;color:${i===0?'#ffcc00':'#00ffcc'}`;
+    div.innerHTML=`<div style="font-size:20px;font-weight:bold;width:30px">${i+1}</div><div style="flex:1">${r.id}</div><div style="font-size:11px;opacity:.6">${formatTime(r.time)}</div>`;
+    list.appendChild(div);
+  });
+  showScreen('scrResults');
+}
+
+function formatTime(s){
+  const m=Math.floor(s/60),sec=Math.floor(s%60),ms=Math.floor((s%1)*100);
+  return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+}
+
+/* ================================================================
+   SECTION 9 — NETWORK (PeerJS)
+   ================================================================ */
+function initPeer(id,onReady,onError){
+  if(peer){ try{peer.destroy();}catch(e){} }
+  peer=new Peer(id,{debug:1});
+  peer.on('open',()=>{
+    setNetStatus('接続完了: '+id);
+    onReady();
+  });
+  peer.on('error',err=>{
+    console.warn('Peer error',err.type,err);
+    if(err.type==='unavailable-id'){
+      onError&&onError('unavailable-id');
+    } else if(err.type==='peer-unavailable'){
+      onError&&onError('peer-unavailable');
+    } else {
+      onError&&onError(err.type||'error');
+    }
+  });
+  peer.on('disconnected',()=>{ setNetStatus('切断されました'); });
+  peer.on('close',()=>{ setNetStatus(''); });
+}
+
+/* ── HOST LOGIC ── */
+function startHost(){
+  isHost=true;gameMode='multi';
+  playerSlots=[myId];
+  mySlot=0;
+
+  initPeer(myId,()=>{
+    document.getElementById('hostRoomId').textContent=myId;
+    document.getElementById('hostStatus').textContent='接続待機中...';
+    updateHostPList();
+    peer.on('connection',onNewClientConn);
+  },err=>{
+    if(err==='unavailable-id'){
+      alert('このIDは既に使用されています。IDを変更してください。');
+      showScreen('scrTitle');
+      peer&&peer.destroy();peer=null;
+    } else {
+      alert('接続エラー: '+err);
+    }
+  });
+}
+
+function onNewClientConn(conn){
+  conn.on('open',()=>{
+    const cid=conn.peer;
+    // Conflict check
+    if(conns.has(cid)){
+      conn.send({t:'conflict'});conn.close();return;
+    }
+    conns.set(cid,conn);
+    const slot=playerSlots.length;
+    playerSlots.push(cid);
+    spawnRemotePlayer(cid,slot);
+    // Send welcome
+    conn.send({t:'welcome',players:playerSlots.map((id,s)=>({id,s})),hostId:myId});
+    // Notify others
+    broadcastToAll({t:'joined',id:cid,s:slot},cid);
+    updateHostPList();
+    document.getElementById('btnStartRace').disabled=false;
+    document.getElementById('hostStatus').textContent=`${conns.size}人が接続中`;
+
+    conn.on('data',data=>onDataFromClient(conn,data));
+    conn.on('close',()=>onClientDisconnect(cid));
+    conn.on('error',()=>onClientDisconnect(cid));
+  });
+}
+
+function onClientDisconnect(cid){
+  conns.delete(cid);
+  const idx=playerSlots.indexOf(cid);
+  if(idx>-1) playerSlots.splice(idx,1);
+  removeRemotePlayer(cid);
+  broadcastToAll({t:'left',id:cid},null);
+  updateHostPList();
+  document.getElementById('hostStatus').textContent=`${conns.size}人が接続中`;
+  if(conns.size===0) document.getElementById('btnStartRace').disabled=true;
+}
+
+function onDataFromClient(conn,data){
+  if(!data||!data.t) return;
+  switch(data.t){
+    case 'state':
+      updateRemoteState(data);
+      broadcastToAll(data,data.id); // relay
+      break;
+    case 'item':
+      if(data.action==='off'){
+        if(itemActive[data.idx]){
+          itemActive[data.idx]=false;updateItemMeshes();
+          broadcastToAll(data,data.id);
+          scheduleItemRespawn(data.idx);
+        }
+      }
+      break;
+    case 'finish':
+      collectResult(data.id,data.time);
+      broadcastToAll(data,data.id);
+      break;
+    case 'thunder':
+      // A remote player used thunder — spin us
+      if(data.id!==myId) applySpin();
+      broadcastToAll(data,data.id);
+      break;
+    default:break;
+  }
+}
+
+function broadcastToAll(data,exceptId){
+  conns.forEach((c,id)=>{ if(id!==exceptId && c.open) c.send(data); });
+}
+
+function sendHostStart(courseId){
+  const msg={t:'countdown',n:3};
+  broadcastToAll(msg,null);
+  runCountdown(()=>{
+    broadcastToAll({t:'race_start'},null);
+    beginRace(courseId);
+  });
+}
+
+/* ── CLIENT LOGIC ── */
+function joinRoom(hostId){
+  isHost=false;gameMode='multi';
+  const jStatus=document.getElementById('joinStatus');
+  jStatus.style.display='block';
+  jStatus.className='msg-warn';
+  jStatus.textContent='接続中...';
+
+  initPeer(myId,()=>{
+    const conn=peer.connect(hostId,{reliable:true});
+    hostConn=conn;
+    conn.on('open',()=>{
+      jStatus.className='msg-ok';
+      jStatus.textContent='接続しました！待機中...';
+    });
+    conn.on('data',data=>onDataFromHost(data));
+    conn.on('close',()=>{
+      alert('ホストとの接続が切れました');
+      cleanupNetwork();
+      showScreen('scrTitle');
+    });
+    conn.on('error',()=>{
+      jStatus.className='msg-err';
+      jStatus.textContent='接続エラー';
+    });
+  },err=>{
+    if(err==='unavailable-id'){
+      jStatus.className='msg-err';
+      jStatus.textContent='IDが重複しています。IDを変更してください';
+      setTimeout(()=>showScreen('scrChangeId'),1500);
+    } else if(err==='peer-unavailable'){
+      jStatus.className='msg-err';
+      jStatus.textContent='ルームIDが見つかりません';
+    } else {
+      jStatus.className='msg-err';
+      jStatus.textContent='エラー: '+err;
+    }
+  });
+}
+
+function onDataFromHost(data){
+  if(!data||!data.t) return;
+  switch(data.t){
+    case 'welcome':
+      data.players.forEach(({id,s})=>{
+        if(id===myId){ mySlot=s; return; }
+        spawnRemotePlayer(id,s);
+      });
+      playerSlots=data.players.map(p=>p.id);
+      break;
+    case 'joined':
+      spawnRemotePlayer(data.id,data.s);
+      playerSlots.push(data.id);
+      break;
+    case 'left':
+      removeRemotePlayer(data.id);
+      break;
+    case 'state':
+      updateRemoteState(data);
+      break;
+    case 'countdown':
+      runCountdown(null);
+      break;
+    case 'race_start':
+      screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
+      document.getElementById('topLeft').style.display='none';
+      document.getElementById('hud').style.display='none';
+      document.getElementById('lapHUD').style.display='none';
+      document.getElementById('rankHUD').style.display='none';
+      document.getElementById('itemSlotHUD').style.display='none';
+      inMenuMode=false;
+      runCountdown(()=>beginRace('demo'));
+      break;
+    case 'item':
+      if(data.action==='off'){ itemActive[data.idx]=false; }
+      else { itemActive[data.idx]=true; }
+      updateItemMeshes();
+      break;
+    case 'finish':
+      if(data.id!==myId){
+        const p=remotePlayers.get(data.id);
+        if(p) p.finished=true;
+        collectResult(data.id,data.time);
+      }
+      break;
+    case 'thunder':
+      if(data.id!==myId) applySpin();
+      break;
+    case 'results':
+      raceResults=data.results;
+      showResults();
+      break;
+    case 'conflict':
+      alert('IDが競合しています。IDを変更してください。');
+      cleanupNetwork();
+      showScreen('scrChangeId');
+      break;
+    default:break;
+  }
+}
+
+function updateRemoteState(data){
+  const p=remotePlayers.get(data.id);
+  if(!p) return;
+  p.targetPos.set(data.p[0],data.p[1],data.p[2]);
+  const fwd=new THREE.Vector3(data.f[0],data.f[1],data.f[2]);
+  const norm=new THREE.Vector3(data.n[0],data.n[1],data.n[2]);
+  p.targetQuat.copy(quatFromVecs(fwd,norm));
+  p.passedCP=data.cp||0;
+}
+
+function sendMyState(){
+  if(!physicsEnabled||gameMode==='solo') return;
+  const now=performance.now();
+  if(now-lastSendTime<NET_INTERVAL) return;
+  lastSendTime=now;
+  const data={
+    t:'state',id:myId,
+    p:[kartGroup.position.x,kartGroup.position.y,kartGroup.position.z],
+    f:[kartForward.x,kartForward.y,kartForward.z],
+    n:[kartNormal.x,kartNormal.y,kartNormal.z],
+    s:fwdSpd,cp:passedCP
+  };
+  if(isHost){
+    broadcastToAll(data,null);
+  } else if(hostConn&&hostConn.open){
+    hostConn.send(data);
+  }
+}
+
+function cleanupNetwork(){
+  if(hostConn){try{hostConn.close();}catch(e){} hostConn=null;}
+  conns.forEach(c=>{try{c.close();}catch(e){}});
+  conns.clear();
+  remotePlayers.forEach((_,id)=>removeRemotePlayer(id));
+  remotePlayers.clear();
+  playerSlots=[];
+  if(peer){try{peer.destroy();}catch(e){} peer=null;}
+  isHost=false;gameMode='solo';
+}
+
+/* ================================================================
+   SECTION 10 — INPUT
+   ================================================================ */
+const keys={},pressed={},released={};
+window.addEventListener('keydown',e=>{
+  if(!keys[e.code]) pressed[e.code]=true;
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if(e.code==='KeyG' && pressed['KeyG']) toggleGravityMode();
+  hideTouchUI();
+});
+window.addEventListener('keyup',e=>{keys[e.code]=false;released[e.code]=true;});
+const gV=()=>((keys.KeyW||keys.ArrowUp)?1:0)+((keys.KeyS||keys.ArrowDown)?-1:0);
+const gH=()=>((keys.KeyD||keys.ArrowRight)?-1:0)+((keys.KeyA||keys.ArrowLeft)?1:0);
+
+// Item key tracking
+window.addEventListener('keydown',e=>{
+  if(e.code==='KeyE' && !keys.KeyE){
+    itemKeyDownT=performance.now();
+  }
+  if(e.code==='KeyQ' && !keys.KeyQ){
+    useItem(true); // shield/throw-behind
+  }
+});
+window.addEventListener('keyup',e=>{
+  if(e.code==='KeyE'){
+    const held=(performance.now()-itemKeyDownT)/1000;
+    if(held < 0.25){
+      useItem(false); // tap = launch forward
+    } else {
+      useItem(true);  // long press = shield mode
+    }
+    itemKeyDownT=-1;
+  }
+});
+
+const touchCtrl=document.getElementById('touchCtrl');
+let touchUIVisible=false;
+function showTouchUI(){touchUIVisible=true;touchCtrl.classList.add('active');}
+function hideTouchUI(){if(touchUIVisible){touchUIVisible=false;touchCtrl.classList.remove('active');}}
+window.addEventListener('touchstart',e=>{
+  if(!touchUIVisible&&(e.target===document.body||e.target.tagName==='CANVAS')) showTouchUI();
+},{passive:true});
+const tMap={touchL:['KeyA','ArrowLeft'],touchR:['KeyD','ArrowRight'],touchGas:['KeyW','ArrowUp'],touchBrake:['KeyS','ArrowDown'],touchJump:['Space'],touchGrav:['KeyG']};
+Object.keys(tMap).forEach(id=>{
+  const btn=document.getElementById(id);if(!btn) return;
+  btn.addEventListener('touchstart',e=>{
+    e.preventDefault();e.stopPropagation();
+    if(id==='touchGrav') toggleGravityMode();
+    tMap[id].forEach(c=>{if(!keys[c]) pressed[c]=true;keys[c]=true;});
+    btn.dataset.ot=btn.style.transform;
+    btn.style.transform=(id==='touchJump'?'translateX(-50%) ':'')+'scale(0.92)';
+  },{passive:false});
+  btn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();tMap[id].forEach(c=>{keys[c]=false;released[c]=true;});btn.style.transform=btn.dataset.ot||'';},{passive:false});
+  btn.addEventListener('touchcancel',()=>{tMap[id].forEach(c=>{keys[c]=false;released[c]=true;});btn.style.transform=btn.dataset.ot||'';});
+});
+
+// Touch ITEM button
+const touchItemBtn=document.getElementById('touchItem');
+if(touchItemBtn){
+  touchItemBtn.addEventListener('touchstart',e=>{
+    e.preventDefault();e.stopPropagation();
+    itemKeyDownT=performance.now();
+    touchItemBtn.style.transform='scale(0.92)';
+  },{passive:false});
+  touchItemBtn.addEventListener('touchend',e=>{
+    e.preventDefault();e.stopPropagation();
+    const held=(performance.now()-itemKeyDownT)/1000;
+    useItem(held>=0.25);
+    itemKeyDownT=-1;
+    touchItemBtn.style.transform='';
+  },{passive:false});
+}
+
+// Touch BACK (shield) button
+const touchShieldBtn=document.getElementById('touchShield');
+if(touchShieldBtn){
+  touchShieldBtn.addEventListener('touchstart',e=>{
+    e.preventDefault();e.stopPropagation();
+    useItem(true);
+    touchShieldBtn.style.transform='scale(0.92)';
+  },{passive:false});
+  touchShieldBtn.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();touchShieldBtn.style.transform='';},{passive:false});
+}
+
+/* ================================================================
+   SECTION 11 — PHYSICS (from KartGame8, unchanged logic)
+   ================================================================ */
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const mvtw=(c,t,d)=>{const df=t-c;return Math.abs(df)<=d?t:c+Math.sign(df)*d;};
+const getFwd=()=>kartForward;
+const getRight=()=>new THREE.Vector3().crossVectors(kartNormal,kartForward).normalize();
+
+function alignForwardToNormal(){
+  const right=new THREE.Vector3().crossVectors(kartNormal,kartForward).normalize();
+  kartForward.crossVectors(right,kartNormal).normalize();
+}
+function toggleGravityMode(){
+  if(!physicsEnabled) return;
+  gravityMode=gravityMode==='antigravity'?'normal':'antigravity';
+  kartNormal.set(0,1,0);alignForwardToNormal();vertVel=0;grounded=false;
+}
+function onLanded(){
+  if(wasGrounded||!grounded) return;
+  if(driftPend){const h=gH();if(Math.abs(h)>.1){drifting=true;driftDir=Math.sign(h);driftT=0;spark=0;}driftPend=false;}
+  if(airAction){landBoostT=P.landBoostDur;airAction=false;}
+}
+function doJump(){
+  if(!pressed.Space||drifting) return;
+  if(grounded){vertVel=P.jumpForce;if(Math.abs(gH())>.1)driftPend=true;if(gravityMode==='normal')grounded=false;}
+  else{if(Math.abs(gH())>.1)driftPend=true;}
+}
+function doAirAction(){if(!grounded&&pressed.Space)airAction=true;}
+function doDriftRelease(){
+  if(!drifting) return;
+  let end=released.Space;
+  if(Math.sign(gH())===-driftDir&&Math.abs(gH())>.8)end=true;
+  if(end)releaseDrift();
+}
+function releaseDrift(){
+  if(spark===2){boostSpd=P.redBoostSpd;boostT=P.redBoostDur;}else if(spark===1){boostSpd=P.blueBoostSpd;boostT=P.blueBoostDur;}
+  drifting=false;driftDir=0;driftT=0;spark=0;
+}
+function chargeTurbo(dt){
+  if(!drifting||!grounded) return;
+  driftT+=dt;
+  if(spark<2&&driftT>=P.redSparkT)spark=2;else if(spark<1&&driftT>=P.blueSparkT)spark=1;
+}
+function tickTimers(dt){
+  if(boostT>0){boostT-=dt;if(boostT<=0){boostT=0;boostSpd=0;}}
+  if(landBoostT>0)landBoostT=Math.max(0,landBoostT-dt);
+  if(itemBoostT>0)itemBoostT=Math.max(0,itemBoostT-dt);
+  if(raceStarted&&!raceFinished)myRaceTime+=dt;
+
+  // Star timer
+  if(starMode){
+    starTimer-=dt;
+    if(starTimer<=0){starMode=false;starTimer=0;starColorIdx=0;updateItemHUD();}
+  }
+  // Bullet timer
+  if(bulletMode){
+    bulletTimer-=dt;
+    if(bulletTimer<=0){bulletMode=false;bulletTimer=0;}
+  }
+  // Spin timer
+  if(spinTimer>0){
+    spinTimer-=dt;
+    if(spinTimer<=0){
+      spinTimer=0;
+      document.getElementById('spinOverlay').classList.remove('on');
+    }
+  }
+}
+function gravity(dt){
+  if(grounded&&vertVel<0)vertVel=-1;
+  else vertVel-=9.81*P.gravMult*dt;
+  if(gravityMode==='normal'&&grounded){
+    const g=9.81*P.gravMult,f=kartForward,r=getRight();
+    fwdSpd-=g*f.y*dt;latSpd-=g*r.y*dt;
+  }
+}
+function accelerate(dt){
+  // During spin: lose control, slow down
+  if(spinTimer>0){
+    fwdSpd*=Math.max(0,1-dt*4);
+    kartForward.applyAxisAngle(kartNormal,dt*(spinTimer>SPIN_DUR*.5?3:-3)).normalize();
+    return;
+  }
+  // Bullet: force max speed, no brake
+  if(bulletMode){
+    fwdSpd=mvtw(fwdSpd,P.maxFwdSpd+8,P.accel*dt);
+    return;
+  }
+  const v=gV();
+  const mushroomBoost=(itemBoostT>0?MUSH_SPD:0);
+  const eMax=P.maxFwdSpd+(boostT>0?boostSpd:0)+(landBoostT>0?P.landBoostSpd:0)+mushroomBoost;
+  let tgt,rate;
+  if(v>.01){tgt=eMax;rate=fwdSpd<-.1?P.brakeDecel:P.accel;}
+  else if(v<-.01){tgt=-P.maxRevSpd;rate=fwdSpd>.1?P.brakeDecel:P.accel;}
+  else{tgt=0;rate=P.natDecel;}
+  fwdSpd=mvtw(fwdSpd,tgt,rate*dt);
+}
+function steer(dt){
+  if(spinTimer>0||bulletMode) return; // auto-handled in accelerate / updateBulletPilot
+  if(Math.abs(fwdSpd)<.5) return;
+  const h=gH();
+  const sr=clamp(Math.abs(fwdSpd)/P.maxFwdSpd,0,1);
+  const rate=P.steerLow+(P.steerHigh-P.steerLow)*sr;
+  let mult=1;if(drifting)mult=Math.sign(h)===driftDir?P.driftSteerMult:.35;
+  const angle=h*mult*rate*Math.sign(fwdSpd)*dt;
+  kartForward.applyAxisAngle(kartNormal,angle).normalize();
+}
+function sideslip(dt){
+  if(!drifting||!grounded) return;
+  if(Math.abs(latSpd)<P.maxSlip)latSpd=clamp(latSpd+driftDir*P.driftSlip*dt,-P.maxSlip,P.maxSlip);
+}
+function bounce3D(wn){
+  const f=kartForward,r=getRight();
+  const vel=new THREE.Vector3(f.x*fwdSpd+r.x*latSpd,f.y*fwdSpd+r.y*latSpd,f.z*fwdSpd+r.z*latSpd);
+  const dot=vel.dot(wn);
+  vel.sub(wn.clone().multiplyScalar(2*dot)).multiplyScalar(P.wallBounce);
+  fwdSpd=vel.dot(f);latSpd=vel.dot(r);
+  if(drifting)releaseDrift();
+}
+function commit(dt){
+  if(!drifting)latSpd*=Math.max(0,1-12*dt);
+  wasGrounded=grounded;
+  const f=kartForward,r=getRight();
+  if(gravityMode==='normal'&&!grounded){kartNormal.lerp(new THREE.Vector3(0,1,0),dt*4).normalize();alignForwardToNormal();}
+  const moveVec=new THREE.Vector3().addScaledVector(f,fwdSpd*dt).addScaledVector(r,latSpd*dt);
+  if(gravityMode==='normal')moveVec.y+=vertVel*dt;
+  else moveVec.addScaledVector(kartNormal,vertVel*dt);
+  const moveDist=moveVec.length();
+  if(moveDist===0) return;
+  const moveDir=moveVec.clone().normalize();
+  const currentPos=kartGroup.position.clone();
+  let nextPos=currentPos.clone().add(moveVec);
+  const raycaster=new THREE.Raycaster();
+  raycaster.set(currentPos,moveDir);
+  let fwdHits=raycaster.intersectObjects(terrainObjects,false);
+  if(fwdHits.length>0){
+    const hit=fwdHits[0];
+    if(hit.distance<KRADR+moveDist){
+      let hitN=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+      if(moveDir.dot(hitN)>0)hitN.negate();
+      if(hitN.angleTo(kartNormal)>Math.PI/6+.05){bounce3D(hitN);nextPos=currentPos.clone().add(moveDir.multiplyScalar(Math.max(0,hit.distance-KRADR)));}
+    }
+  }
+  let rayOrigin,rayDir;
+  if(gravityMode==='normal'){rayOrigin=nextPos.clone().add(new THREE.Vector3(0,KRADR+1.0,0));rayDir=new THREE.Vector3(0,-1,0);}
+  else{rayOrigin=nextPos.clone().addScaledVector(kartNormal,KRADR+1.0);rayDir=kartNormal.clone().negate();}
+  raycaster.set(rayOrigin,rayDir);
+  let downHits=raycaster.intersectObjects(terrainObjects,false);
+  grounded=false;
+  const searchDist=(KRADR+1.0)+Math.max(.5,Math.abs(vertVel*dt)*2);
+  if(downHits.length>0){
+    const hit=downHits[0];
+    if(hit.distance<searchDist){
+      let hitN=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+      if(rayDir.dot(hitN)>0)hitN.negate();
+      let canLand;
+      if(gravityMode==='normal')canLand=hitN.y>.01;
+      else{const wasAirborne=!wasGrounded;canLand=hitN.angleTo(kartNormal)<=Math.PI/6+.05||wasAirborne;}
+      if(canLand){kartNormal.copy(hitN);alignForwardToNormal();nextPos.copy(hit.point).addScaledVector(kartNormal,GND_Y);grounded=true;vertVel=0;}
+    }
+  }
+  kartGroup.position.copy(nextPos);
+}
+
+/* ================================================================
+   SECTION 12 — VISUAL UPDATE
+   ================================================================ */
+function updateMesh(){
+  const right=getRight();
+  const mat=new THREE.Matrix4().makeBasis(right,kartNormal,kartForward);
+  kartGroup.quaternion.setFromRotationMatrix(mat);
+}
+function updateTilt(dt){
+  let tgt;
+  if(drifting){tgt=THREE.MathUtils.degToRad(-P.driftTilt*driftDir);}
+  else{const h=gH();tgt=THREE.MathUtils.degToRad(-h*8*clamp(Math.abs(fwdSpd)/P.maxFwdSpd,0,1));}
+  bodyTilt=bodyTilt+(tgt-bodyTilt)*(dt*10);
+  kartBody.rotation.z=bodyTilt;
+}
+function updateFX(){
+  const kp=kartGroup.position,f=getFwd(),r=getRight();
+  if(drifting&&spark>=1){
+    blueLight.position.copy(kp).addScaledVector(f,-1.1).addScaledVector(r,driftDir*.7).addScaledVector(kartNormal,.15);
+    redLight.position.copy(blueLight.position);
+    blueLight.intensity=3.5;redLight.intensity=spark>=2?4.5:0;
+  }else{blueLight.intensity=redLight.intensity=0;}
+  boostLight.position.copy(kp).addScaledVector(kartNormal,.5);
+  boostLight.intensity=boostT>0?5:landBoostT>0||itemBoostT>0?3:bulletMode?7:0;
+
+  const gc=kartBody.children.find(c=>c.material&&c.material.color&&c.material.type==='MeshBasicMaterial');
+  if(gc){
+    if(starMode){/* handled in updateStarFX */}
+    else if(bulletMode) gc.material.color.setHex(0xffffff);
+    else if(itemBoostT>0) gc.material.color.setHex(0xffcc00);
+    else if(boostT>0) gc.material.color.setHex(0xff8800);
+    else if(spark===2) gc.material.color.setHex(0xff2200);
+    else if(spark===1) gc.material.color.setHex(0x0088ff);
+    else gc.material.color.setHex(PLAYER_COLORS[mySlot%PLAYER_COLORS.length].glow);
+  }
+  document.getElementById('bflash').classList.toggle('on',boostT>0||itemBoostT>0||bulletMode);
+  document.getElementById('dvign').classList.toggle('on',drifting||starMode);
+}
+const camPos=new THREE.Vector3(0,4,-6),camLook=new THREE.Vector3();
+function updateCamera(dt){
+  const f=getFwd(),n=kartNormal;
+  const dist=5.5+Math.abs(fwdSpd)*.08;
+  const des=kartGroup.position.clone().addScaledVector(f,-dist).addScaledVector(n,3.5);
+  camPos.lerp(des,Math.min(dt*6,1));camera.position.copy(camPos);
+  const lookAt=kartGroup.position.clone().addScaledVector(f,2.5).addScaledVector(n,.65);
+  camLook.lerp(lookAt,Math.min(dt*9,1));camera.lookAt(camLook);
+  camera.up.lerp(n,dt*5).normalize();
+}
+// Menu camera (slow orbit)
+let menuCamAngle=0;
+function updateMenuCamera(dt){
+  menuCamAngle+=dt*.15;
+  camera.position.set(Math.sin(menuCamAngle)*80,35,Math.cos(menuCamAngle)*80);
+  camera.lookAt(0,5,0);
+  camera.up.set(0,1,0);
+}
+function updateHUD(){
+  const kmh=Math.abs(fwdSpd)*3.6;
+  document.getElementById('spd-num').textContent=Math.round(kmh);
+  document.getElementById('sf').style.width=clamp(Math.abs(fwdSpd)/(P.maxFwdSpd+P.redBoostSpd+8)*100,0,100)+'%';
+  const dp=drifting?clamp(driftT/P.redSparkT*100,0,100):0;
+  const dEl=document.getElementById('df');dEl.style.width=dp+'%';
+  dEl.style.background=spark===2?'#ff3300':spark===1?'#00aaff':'#00ffcc';
+  dEl.style.boxShadow=spark===2?'0 0 8px #ff3300':spark===1?'0 0 8px #00aaff':'0 0 6px #00ffcc';
+  const bMax=boostSpd===P.redBoostSpd?P.redBoostDur:P.blueBoostDur;
+  document.getElementById('bf').style.width=boostT>0?clamp(boostT/bMax*100,0,100)+'%':
+    itemBoostT>0?clamp(itemBoostT/MUSH_DUR*100,0,100)+'%':
+    starMode?clamp(starTimer/STAR_DUR*100,0,100)+'%':
+    bulletMode?clamp(bulletTimer/BULLET_DUR*100,0,100)+'%':'0%';
+  document.getElementById('bf').style.background=starMode?'#ffdd00':bulletMode?'#ffffff':'#ff8800';
+  const spk=document.getElementById('spark');
+  spk.className='';if(spark===2){spk.textContent='★';spk.className='red';}else if(spark===1){spk.textContent='✦';spk.className='blue';}
+  document.getElementById('s1').textContent=drifting?`DRIFT ${spark===2?'RED MAX':spark===1?'BLUE':'CHARGING...'}`:'─';
+  let s2txt='─';
+  if(spinTimer>0) s2txt=`SPIN! ${spinTimer.toFixed(1)}s`;
+  else if(bulletMode) s2txt=`🚀 KILLER ${bulletTimer.toFixed(1)}s`;
+  else if(starMode) s2txt=`⭐ STAR ${starTimer.toFixed(1)}s`;
+  else if(itemBoostT>0) s2txt=`🍄 DASH ${itemBoostT.toFixed(1)}s`;
+  else if(boostT>0) s2txt=`BOOST ${boostT.toFixed(1)}s`;
+  else if(landBoostT>0) s2txt='LAND BONUS!';
+  document.getElementById('s2').textContent=s2txt;
+  const s3=document.getElementById('s3');
+  if(gravityMode==='normal'){s3.textContent='NORMAL [G]';s3.style.color='rgba(255,160,0,.95)';s3.style.textShadow='0 0 10px rgba(255,160,0,.7)';}
+  else{s3.textContent='ANTI-GRAV [G]';s3.style.color='rgba(0,255,204,.9)';s3.style.textShadow='0 0 10px rgba(0,255,204,.6)';}
+}
+
+/* ================================================================
+   SECTION 13 — ITEM BOX SPIN
+   ================================================================ */
+function spinItems(dt){
+  itemMeshes.forEach((m,i)=>{if(itemActive[i])m.rotation.y+=dt*1.5;});
+}
+
+/* ================================================================
+   SECTION 14 — UI / SCREEN MANAGEMENT
+   ================================================================ */
+const screens=['scrIdSetup','scrTitle','scrChangeId','scrPlayMenu','scrCourseSelect','scrHostLobby','scrJoinLobby','scrResults'];
+function showScreen(id){
+  screens.forEach(s=>{
+    const el=document.getElementById(s);
+    if(el) el.classList.toggle('hidden',s!==id);
+  });
+}
+function setNetStatus(msg){ document.getElementById('netStatus').textContent=msg; }
+
+function updateHostPList(){
+  const el=document.getElementById('hostPList');el.innerHTML='';
+  playerSlots.forEach((id,s)=>{
+    const ci=s%PLAYER_COLORS.length;
+    const col=PLAYER_COLORS[ci];
+    const div=document.createElement('div');div.className='pitem';
+    div.style.borderLeftColor=col.hex;
+    div.innerHTML=`<div class="pdot" style="background:${col.hex}"></div><span>${id}${id===myId?' (あなた)':''}</span>`;
+    el.appendChild(div);
+  });
+}
+
+/* ================================================================
+   SECTION 15 — RACE START / COUNTDOWN
+   ================================================================ */
+let countdownActive=false;
+function runCountdown(onDone){
+  if(countdownActive) return;
+  countdownActive=true;
+  const overlay=document.getElementById('cdOverlay');
+  const numEl=document.getElementById('cdNum');
+  overlay.classList.add('on');
+  let count=3;
+  numEl.textContent=count;
+  const step=()=>{
+    count--;
+    numEl.style.animation='none';void numEl.offsetWidth;
+    numEl.style.animation='popIn .7s ease-out';
+    if(count>0){ numEl.textContent=count; setTimeout(step,1000); }
+    else{
+      numEl.textContent='GO!';
+      setTimeout(()=>{
+        overlay.classList.remove('on');
+        countdownActive=false;
+        onDone&&onDone();
+      },800);
+    }
+  };
+  setTimeout(step,1000);
+}
+
+function beginRace(courseId){
+  // Reset race state
+  passedCP=0;nextCPIdx=1;myRaceTime=0;raceFinished=false;raceResults=[];
+  fwdSpd=0;latSpd=0;vertVel=0;grounded=true;drifting=false;boostT=0;itemBoostT=0;
+  kartForward.copy(START_FWD);kartNormal.set(0,1,0);
+
+  // Position kart
+  const sp=START_POS[mySlot]||START_POS[0];
+  kartGroup.position.set(sp[0],sp[1],sp[2]);
+  camPos.set(sp[0],sp[1]+4,sp[2]-6);
+
+  // Reset items
+  itemActive.fill(true);updateItemMeshes();
+  // Reset item system state
+  heldItem=null;heldCount=0;starMode=false;starTimer=0;
+  bulletMode=false;bulletTimer=0;spinTimer=0;shieldMode=false;
+  if(shieldMesh){scene.remove(shieldMesh);shieldMesh=null;}
+  itemProjectiles.forEach(p=>scene.remove(p.mesh));itemProjectiles.length=0;
+  bananaObjs.forEach(b=>scene.remove(b.mesh));bananaObjs.length=0;
+  document.getElementById('spinOverlay').classList.remove('on');
+  updateItemHUD();
+
+  // Show racing HUD
+  document.getElementById('topLeft').style.display='flex';
+  document.getElementById('hud').style.display='block';
+  document.getElementById('lapHUD').style.display='block';
+  document.getElementById('rankHUD').style.display='block';
+  document.getElementById('itemSlotHUD').style.display='flex';
+  updateLapHUD();
+
+  // Enable physics AFTER the GO!
+  raceStarted=true;
+  physicsEnabled=true;
+}
+
+function startSoloRace(){
+  gameMode='solo';
+  mySlot=0;
+  playerSlots=[myId];
+  beginRace('demo');
+}
+
+/* ================================================================
+   SECTION 16 — MAIN LOOP
+   ================================================================ */
+let prevT=0;
+let inMenuMode=true; // true = use orbit camera, false = race camera
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=Math.min((ts-prevT)/1000,.05);prevT=ts;
+  if(dt<=0){renderer.render(scene,camera);return;}
+
+  spinItems(dt);
+
+  if(physicsEnabled){
+    onLanded();doJump();doDriftRelease();doAirAction();
+    chargeTurbo(dt);tickTimers(dt);gravity(dt);
+    accelerate(dt);steer(dt);sideslip(dt);commit(dt);
+    checkCheckpoints();
+    checkItemCollision();
+    updateProjectiles(dt);
+    updateBananas(dt);
+    updateShieldMesh();
+    updateStarFX(dt);
+    if(bulletMode) updateBulletPilot(dt);
+    sendMyState();
+    updateMesh();updateTilt(dt);updateFX();
+    updateCamera(dt);
+    updateHUD();
+    updateRemotePlayers(dt);
+    updateRankHUD();
+
+    for(const k in pressed)  delete pressed[k];
+    for(const k in released) delete released[k];
+  } else {
+    updateMenuCamera(dt);
+  }
+
+  renderer.render(scene,camera);
+}
+
+/* ================================================================
+   SECTION 17 — INIT & EVENT LISTENERS
+   ================================================================ */
+function validateId(id){
+  if(!id||id.length<2) return 'IDは2文字以上で入力してください';
+  if(id.length>20) return 'IDは20文字以下で入力してください';
+  if(!/^[a-zA-Z0-9_-]+$/.test(id)) return '英数字・アンダースコア・ハイフンのみ使用可';
+  return null;
+}
+
+function initApp(){
+  myId=localStorage.getItem('kartPlayerId')||'';
+  if(!myId){ showScreen('scrIdSetup'); }
+  else { document.getElementById('titlePlayerId').textContent=myId; showScreen('scrTitle'); }
+  requestAnimationFrame(loop);
+}
+
+// ── ID Setup ──
+document.getElementById('btnIdSetupOk').addEventListener('click',()=>{
+  const v=document.getElementById('idSetupInput').value.trim();
+  const err=validateId(v);
+  const errEl=document.getElementById('idSetupErr');
+  if(err){ errEl.textContent=err;errEl.style.display='block';return; }
+  errEl.style.display='none';
+  myId=v;localStorage.setItem('kartPlayerId',myId);
+  document.getElementById('titlePlayerId').textContent=myId;
+  showScreen('scrTitle');
+});
+document.getElementById('idSetupInput').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('btnIdSetupOk').click();});
+
+// ── Title ──
+document.getElementById('btnPlay').addEventListener('click',()=>{ showScreen('scrPlayMenu'); });
+document.getElementById('btnChangeId').addEventListener('click',()=>{
+  document.getElementById('changeIdCurrent').textContent=myId;
+  document.getElementById('changeIdInput').value='';
+  document.getElementById('changeIdErr').style.display='none';
+  showScreen('scrChangeId');
+});
+
+// ── Change ID ──
+document.getElementById('btnChangeIdOk').addEventListener('click',()=>{
+  const v=document.getElementById('changeIdInput').value.trim();
+  const err=validateId(v);
+  const errEl=document.getElementById('changeIdErr');
+  if(err){ errEl.textContent=err;errEl.style.display='block';return; }
+  errEl.style.display='none';
+  myId=v;localStorage.setItem('kartPlayerId',myId);
+  document.getElementById('titlePlayerId').textContent=myId;
+  showScreen('scrTitle');
+});
+document.getElementById('changeIdInput').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('btnChangeIdOk').click();});
+document.getElementById('btnChangeIdCancel').addEventListener('click',()=>showScreen('scrTitle'));
+
+// ── Play Menu ──
+document.getElementById('btnDemoCourse').addEventListener('click',()=>{
+  showScreen('hidden'); // hide all screens → show game
+  screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
+  document.getElementById('topLeft').style.display='none'; // hide HUD until countdown done
+  document.getElementById('hud').style.display='none';
+  document.getElementById('lapHUD').style.display='none';
+  document.getElementById('rankHUD').style.display='none';
+  document.getElementById('itemSlotHUD').style.display='none';
+  physicsEnabled=false;inMenuMode=false;
+  runCountdown(()=>startSoloRace());
+});
+document.getElementById('btnCourseSelect').addEventListener('click',()=>showScreen('scrCourseSelect'));
+document.getElementById('btnHost').addEventListener('click',()=>{
+  showScreen('scrHostLobby');
+  document.getElementById('hostRoomId').textContent='接続中...';
+  document.getElementById('hostStatus').textContent='PeerJSサーバーに接続中...';
+  document.getElementById('hostPList').innerHTML='';
+  document.getElementById('btnStartRace').disabled=true;
+  startHost();
+  updateHostPList();
+});
+document.getElementById('btnJoin').addEventListener('click',()=>{
+  showScreen('scrJoinLobby');
+  document.getElementById('joinRoomInput').value='';
+  document.getElementById('joinStatus').style.display='none';
+});
+document.getElementById('btnPlayBack').addEventListener('click',()=>showScreen('scrTitle'));
+
+// ── Course Select ──
+document.getElementById('btnCourse0').addEventListener('click',()=>{
+  screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
+  physicsEnabled=false;inMenuMode=false;
+  runCountdown(()=>startSoloRace());
+});
+document.getElementById('btnCourseBack').addEventListener('click',()=>showScreen('scrPlayMenu'));
+
+// ── Host Lobby ──
+document.getElementById('hostRoomId').addEventListener('click',()=>{
+  navigator.clipboard&&navigator.clipboard.writeText(myId).then(()=>{
+    document.getElementById('hostStatus').textContent='IDをコピーしました！';
+    setTimeout(()=>document.getElementById('hostStatus').textContent=`${conns.size}人が接続中`,1500);
+  });
+});
+document.getElementById('btnStartRace').addEventListener('click',()=>{
+  document.getElementById('btnStartRace').disabled=true;
+  screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
+  document.getElementById('topLeft').style.display='none';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('lapHUD').style.display='none';
+  document.getElementById('rankHUD').style.display='none';
+  document.getElementById('itemSlotHUD').style.display='none';
+  inMenuMode=false;
+  broadcastToAll({t:'race_start'},null);
+  runCountdown(()=>beginRace('demo'));
+});
+document.getElementById('btnHostCancel').addEventListener('click',()=>{
+  cleanupNetwork();showScreen('scrPlayMenu');
+});
+
+// ── Join Lobby ──
+document.getElementById('btnJoinConnect').addEventListener('click',()=>{
+  const hostId=document.getElementById('joinRoomInput').value.trim();
+  if(!hostId){ document.getElementById('joinStatus').textContent='ルームIDを入力してください';document.getElementById('joinStatus').style.display='block';return; }
+  joinRoom(hostId);
+});
+document.getElementById('joinRoomInput').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('btnJoinConnect').click();});
+document.getElementById('btnJoinCancel').addEventListener('click',()=>{
+  cleanupNetwork();showScreen('scrPlayMenu');
+});
+
+// ── Results ──
+document.getElementById('btnResultsTitle').addEventListener('click',()=>{
+  cleanupNetwork();
+  // Reset game state
+  physicsEnabled=false;inMenuMode=true;raceStarted=false;raceFinished=false;
+  passedCP=0;nextCPIdx=1;myRaceTime=0;raceResults=[];fwdSpd=0;latSpd=0;
+  kartForward.set(1,0,0);kartNormal.set(0,1,0);
+  document.getElementById('topLeft').style.display='none';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('lapHUD').style.display='none';
+  document.getElementById('rankHUD').style.display='none';
+  document.getElementById('itemSlotHUD').style.display='none';
+  showScreen('scrTitle');});
+
+// Hide HUDs initially
+document.getElementById('topLeft').style.display='none';
+document.getElementById('hud').style.display='none';
+document.getElementById('lapHUD').style.display='none';
+document.getElementById('rankHUD').style.display='none';
+document.getElementById('itemSlotHUD').style.display='none';
+
+// Kick off
+initApp();
+</script>
+</body>
+</html>
