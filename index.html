@@ -109,64 +109,102 @@ canvas{display:block}
 /* ─── NET STATUS ─── */
 #netStatus{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:rgba(0,255,204,.35);z-index:5;pointer-events:none}
 
+/* ─── SETTINGS PANEL ─── */
+.settings-panel{width:300px;background:rgba(0,0,0,.25);border:1px solid rgba(0,255,204,.12);border-radius:4px;padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.settings-panel .sp-title{font-size:9px;letter-spacing:3px;color:rgba(0,255,204,.4);margin-bottom:2px}
+.setting-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.setting-label{font-size:10px;letter-spacing:2px;color:rgba(0,255,204,.5);min-width:48px}
+.setting-toggle{padding:5px 14px;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;border:1px solid rgba(0,255,204,.45);background:rgba(0,255,204,.06);color:rgba(0,255,204,.85);cursor:pointer;transition:all .18s;border-radius:2px}
+.setting-toggle:hover{background:rgba(0,255,204,.15)}
+.setting-toggle.active{background:rgba(0,255,204,.2);border-color:#00ffcc;color:#00ffcc}
+.file-upload-label{padding:5px 14px;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;border:1px solid rgba(255,204,0,.45);background:rgba(255,204,0,.06);color:rgba(255,204,0,.85);cursor:pointer;transition:all .18s;border-radius:2px;display:inline-block}
+.file-upload-label:hover{background:rgba(255,204,0,.15)}
+.course-info{font-size:10px;letter-spacing:1px;color:rgba(0,255,200,.7);padding:3px 6px;background:rgba(0,255,150,.07);border-left:2px solid rgba(0,255,150,.4);display:none}
+.course-info.loaded{display:block}
+.course-info.loading{color:rgba(255,204,0,.7);border-left-color:rgba(255,204,0,.4)}
+.ready-badge{font-size:9px;letter-spacing:1px;color:rgba(0,255,150,.7);margin-left:4px}
+/* Settings lock badge shown in join lobby and in-game */
+#hostSettingsBadge{font-size:10px;letter-spacing:2px;color:rgba(0,255,204,.55);text-align:center;display:none}
+#hostSettingsBadge.show{display:block}
+/* in-game surface indicator (s4) */
+#s4{color:rgba(255,200,0,.85);text-shadow:0 0 8px rgba(255,200,0,.5)}
+/* day mode overrides for new elements */
+body.day .settings-panel{background:rgba(255,255,255,.18);border-color:rgba(13,43,94,.15)}
+body.day .sp-title{color:rgba(13,43,94,.4)}
+body.day .setting-label{color:rgba(13,43,94,.6)}
+body.day .setting-toggle{border-color:rgba(13,43,94,.4);background:rgba(13,43,94,.06);color:rgba(13,43,94,.8)}
+body.day .setting-toggle.active{background:rgba(13,43,94,.18);border-color:#0d2b5e;color:#0d2b5e}
+body.day .file-upload-label{border-color:rgba(122,72,0,.45);background:rgba(122,72,0,.06);color:rgba(122,72,0,.85)}
+body.day .course-info{color:rgba(13,94,50,.8);border-left-color:rgba(13,94,50,.5);background:rgba(13,94,50,.07)}
+body.day #hostSettingsBadge{color:rgba(13,43,94,.6)}
+
 /* ════════════════════════════════════════
    DAY MODE — UI カラーオーバーライド
-   body.day が付いているとき全UI暗色系に
+   メニュー: 明るい白系背景＋濃い文字
    ════════════════════════════════════════ */
 body.day{background:#87ceeb}
-body.day .screen{background:rgba(8,20,50,0.88)!important}
-body.day .game-title{color:#1a4a88;text-shadow:none}
-body.day .btn{border-color:#1a4a88;color:#1a4a88;text-shadow:none}
-body.day .btn:hover{background:rgba(26,74,136,.14);box-shadow:0 0 14px rgba(26,74,136,.3)}
-body.day .btn:active{background:rgba(26,74,136,.25)}
-body.day .btn-sm{border-color:rgba(26,74,136,.5);color:rgba(26,74,136,.75)}
-body.day .btn-start{border-color:#b87800;color:#b87800;text-shadow:none}
-body.day .btn-start:hover{background:rgba(184,120,0,.12);box-shadow:none}
-body.day .btn-danger{border-color:rgba(180,40,40,.7);color:rgba(180,40,40,.9)}
-body.day .field{background:rgba(26,74,136,.06);border-color:rgba(26,74,136,.4);color:#1a4a88}
-body.day .field:focus{border-color:#1a4a88;box-shadow:none}
-body.day .field::placeholder{color:rgba(26,74,136,.35)}
-body.day .msg-ok{color:#1a4a88}
-body.day .msg-gray{color:rgba(26,74,136,.6)}
-body.day .room-id-box{color:#8a5800;text-shadow:none;border-color:rgba(138,88,0,.5);background:rgba(138,88,0,.04)}
-body.day .pitem{background:rgba(0,0,30,.12)}
-/* HUD — speed / status */
-body.day #spd-num{color:#0f2e6a;text-shadow:none}
-body.day #spd-unit{color:rgba(15,46,106,.6)}
-body.day .sline{color:rgba(10,36,90,.85);text-shadow:none}
-/* HUD bars */
-body.day .hlabel{color:rgba(15,46,106,.55)}
-body.day .bbg{background:rgba(0,0,0,.08);border-color:rgba(15,46,106,.18)}
-body.day #sf{background:#1a6aaa;box-shadow:none}
-body.day #df{background:#3355aa;box-shadow:none}
+
+/* ── スクリーン（メニュー） ── */
+body.day .screen{background:rgba(220,235,255,0.94)!important}
+body.day .game-title{color:#0d2b5e;text-shadow:none}
+body.day .title-sub{color:rgba(13,43,94,.5)}
+body.day .msg-gray{color:rgba(13,43,94,.6)}
+body.day .msg-ok{color:#0d4a22}
+body.day .msg-warn{color:#8a4400}
+body.day .msg-err{color:#aa1111}
+
+/* ── ボタン ── */
+body.day .btn{border-color:#0d2b5e;color:#0d2b5e;text-shadow:none;background:rgba(13,43,94,.05)}
+body.day .btn:hover{background:rgba(13,43,94,.12);box-shadow:0 0 14px rgba(13,43,94,.2);transform:translateY(-1px)}
+body.day .btn:active{background:rgba(13,43,94,.22);transform:translateY(0) scale(0.98)}
+body.day .btn-sm{border-color:rgba(13,43,94,.45);color:rgba(13,43,94,.7)}
+body.day .btn-start{border-color:#7a4800;color:#7a4800;text-shadow:none}
+body.day .btn-start:hover{background:rgba(122,72,0,.1);box-shadow:0 0 14px rgba(122,72,0,.2)}
+body.day .btn-danger{border-color:rgba(160,30,30,.7);color:rgba(160,30,30,.9)}
+/* Day/nightトグルボタン */
+body.day #btnDayNight{border-color:rgba(120,72,0,.55)!important;color:rgba(120,72,0,.85)!important}
+
+/* ── 入力フィールド ── */
+body.day .field{background:rgba(255,255,255,.7);border-color:rgba(13,43,94,.4);color:#0d2b5e}
+body.day .field:focus{border-color:#0d2b5e;box-shadow:0 0 10px rgba(13,43,94,.15)}
+body.day .field::placeholder{color:rgba(13,43,94,.35)}
+
+/* ── ルームID / プレイヤーリスト ── */
+body.day .room-id-box{color:#7a4800;text-shadow:none;border-color:rgba(122,72,0,.55);background:rgba(255,255,255,.4)}
+body.day .room-id-box:hover{background:rgba(255,255,255,.6)}
+body.day .pitem{background:rgba(255,255,255,.35)}
+
+/* ════ IN-GAME HUD（レース中）は暗め維持 ════ */
+body.day #spd-num{color:#0d2b5e;text-shadow:none}
+body.day #spd-unit{color:rgba(13,43,94,.6)}
+body.day .sline{color:rgba(10,30,80,.85);text-shadow:none}
+body.day .hlabel{color:rgba(13,43,94,.55)}
+body.day .bbg{background:rgba(0,0,0,.1);border-color:rgba(13,43,94,.2)}
+body.day #sf{background:#1a5faa;box-shadow:none}
+body.day #df{background:#2244aa;box-shadow:none}
 body.day #bf{background:#aa5500;box-shadow:none}
-/* lap / rank */
-body.day #lapNum{color:#8a5800;text-shadow:none}
-body.day #lapSub{color:rgba(138,88,0,.55)}
-body.day .rk-title{color:rgba(15,46,106,.5)}
-body.day .rk-row{background:rgba(0,0,40,.12);border-left-color:rgba(15,46,106,.3)}
-body.day .rk-row.me{border-left-color:#8a5800;background:rgba(138,88,0,.08)}
-body.day .rk-pos{color:rgba(15,46,106,.7)}
-body.day .rk-name{color:rgba(10,36,90,.9)}
-body.day .rk-info{color:rgba(15,46,106,.5)}
-/* item slot */
-body.day #itemSlotBox{background:rgba(0,0,30,.25);border-color:rgba(138,88,0,.6);box-shadow:none}
-body.day #itemSlotBox.shield-mode{border-color:#1a6aaa;box-shadow:0 0 12px rgba(26,106,170,.5)}
-body.day #itemSlotBox.empty{border-color:rgba(138,88,0,.2)}
-body.day #itemCountBadge{color:#8a5800}
-body.day #itemLabel{color:rgba(138,88,0,.6)}
-body.day #itemKeyHint{color:rgba(138,88,0,.45)}
-/* net status */
-body.day #netStatus{color:rgba(15,46,106,.45)}
-/* touch buttons */
-body.day .touch-btn{border-color:rgba(15,46,106,.5);background:rgba(15,46,106,.2);color:rgba(10,36,90,.9)}
-body.day #touchGas{border-color:rgba(0,100,60,.5);background:rgba(0,100,60,.18)}
-body.day #touchBrake{border-color:rgba(160,40,40,.5);background:rgba(160,40,40,.15)}
-body.day #touchJump{border-color:rgba(138,88,0,.5);background:rgba(138,88,0,.15)}
-body.day #touchItem{border-color:rgba(138,88,0,.5);background:rgba(138,88,0,.15)}
-body.day #touchShield{border-color:rgba(26,106,170,.4);background:rgba(26,106,170,.12)}
-/* dvign tint adjustment for day */
-body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,80,.12) 100%)}
+body.day #lapNum{color:#7a4800;text-shadow:none}
+body.day #lapSub{color:rgba(122,72,0,.6)}
+body.day .rk-title{color:rgba(13,43,94,.5)}
+body.day .rk-row{background:rgba(0,0,0,.08);border-left-color:rgba(13,43,94,.3)}
+body.day .rk-row.me{border-left-color:#7a4800;background:rgba(122,72,0,.1)}
+body.day .rk-pos{color:rgba(13,43,94,.7)}
+body.day .rk-name{color:rgba(10,30,80,.9)}
+body.day .rk-info{color:rgba(13,43,94,.5)}
+body.day #itemSlotBox{background:rgba(255,255,255,.25);border-color:rgba(122,72,0,.6);box-shadow:none}
+body.day #itemSlotBox.shield-mode{border-color:#1a5faa;box-shadow:0 0 12px rgba(26,95,170,.4)}
+body.day #itemSlotBox.empty{border-color:rgba(122,72,0,.2)}
+body.day #itemCountBadge{color:#7a4800}
+body.day #itemLabel{color:rgba(122,72,0,.65)}
+body.day #itemKeyHint{color:rgba(122,72,0,.45)}
+body.day #netStatus{color:rgba(13,43,94,.4)}
+body.day .touch-btn{border-color:rgba(13,43,94,.5);background:rgba(13,43,94,.18);color:rgba(10,30,80,.9)}
+body.day #touchGas{border-color:rgba(0,100,50,.55);background:rgba(0,100,50,.18)}
+body.day #touchBrake{border-color:rgba(160,40,40,.55);background:rgba(160,40,40,.16)}
+body.day #touchJump{border-color:rgba(122,72,0,.55);background:rgba(122,72,0,.16)}
+body.day #touchItem{border-color:rgba(122,72,0,.55);background:rgba(122,72,0,.16)}
+body.day #touchShield{border-color:rgba(26,95,170,.45);background:rgba(26,95,170,.14)}
+body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,80,.1) 100%)}
 
 /* ─── TOUCH CONTROLS ─── */
 #touchCtrl{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;z-index:10}
@@ -187,7 +225,7 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
 <canvas id="c"></canvas>
 
 <!-- In-game HUD -->
-<div id="topLeft"><div id="spd"><div id="spd-num">0</div><div id="spd-unit">km / h</div></div><div id="status"><div class="sline" id="s1">─</div><div class="sline" id="s2">─</div><div class="sline" id="s3">ANTI-GRAV</div></div></div>
+<div id="topLeft"><div id="spd"><div id="spd-num">0</div><div id="spd-unit">km / h</div></div><div id="status"><div class="sline" id="s1">─</div><div class="sline" id="s2">─</div><div class="sline" id="s3">ANTI-GRAV</div><div class="sline" id="s4" style="display:none">ROAD</div></div></div>
 <div id="hud"><div class="hrow"><span class="hlabel">SPEED</span><div class="bbg"><div id="sf" class="bfill" style="width:0%"></div></div></div><div class="hrow"><span class="hlabel">DRIFT</span><div class="bbg"><div id="df" class="bfill" style="width:0%"></div></div></div><div class="hrow"><span class="hlabel">BOOST</span><div class="bbg"><div id="bf" class="bfill" style="width:0%"></div></div></div></div>
 <div id="spark">★</div>
 <div id="bflash"></div>
@@ -204,6 +242,7 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
 <div id="spinOverlay"></div>
 <div id="thunderOverlay"></div>
 <div id="netStatus"></div>
+<div id="hostSettingsBadge"></div>
 
 <!-- Touch controls -->
 <div id="touchCtrl">
@@ -252,20 +291,10 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
 <!-- Play Menu -->
 <div id="scrPlayMenu" class="screen hidden">
   <div class="game-title">カートゲーム</div>
-  <button id="btnDemoCourse" class="btn">デモコース</button>
-  <button id="btnCourseSelect" class="btn">コースを選択</button>
-  <button id="btnHost" class="btn">ホスト</button>
-  <button id="btnJoin" class="btn">参加</button>
-  <button id="btnDayNight" class="btn btn-sm" style="margin-top:4px;border-color:rgba(255,220,80,.55);color:rgba(255,220,80,.8)">🌙 夜モード</button>
+  <button id="btnDemoCourse" class="btn">デモコース（ソロ）</button>
+  <button id="btnHost" class="btn">ホスト（マルチ）</button>
+  <button id="btnJoin" class="btn">参加（マルチ）</button>
   <button id="btnPlayBack" class="btn btn-sm" style="margin-top:4px">戻る</button>
-</div>
-
-<!-- Course Select -->
-<div id="scrCourseSelect" class="screen hidden">
-  <div class="game-title">コースを選択</div>
-  <button id="btnCourse0" class="btn">アリーナ（デモ）</button>
-  <button id="btnCourse1" class="btn" style="opacity:.5;cursor:default" disabled>サーキット <span style="font-size:10px;letter-spacing:1px">（近日公開）</span></button>
-  <button id="btnCourseBack" class="btn btn-sm" style="margin-top:4px">戻る</button>
 </div>
 
 <!-- Host Lobby -->
@@ -273,6 +302,28 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
   <div class="game-title">ルームを作成</div>
   <div class="msg-gray">あなたのルームID（参加者に共有）</div>
   <div id="hostRoomId" class="room-id-box" title="クリックでコピー">---</div>
+
+  <div class="settings-panel" style="margin-top:6px">
+    <div class="sp-title">ホスト設定</div>
+
+    <div class="setting-row">
+      <span class="setting-label">コース</span>
+      <label class="file-upload-label" for="courseFileInput">📁 GLBをアップロード</label>
+      <input id="courseFileInput" type="file" accept=".glb,.gltf" style="display:none">
+      <button id="btnUseDemoCourse" class="setting-toggle active">🏟 デモ</button>
+    </div>
+    <div id="courseInfoBadge" class="course-info"></div>
+
+    <div class="setting-row">
+      <span class="setting-label">時間帯</span>
+      <button id="btnHostDayNight" class="setting-toggle">🌙 夜モード</button>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">重力</span>
+      <button id="btnHostGravity" class="setting-toggle active">🌀 反重力</button>
+    </div>
+  </div>
+
   <div class="msg-gray" style="margin-top:8px">接続中のプレイヤー</div>
   <div id="hostPList" class="plist"></div>
   <div id="hostStatus" class="msg-warn">接続待機中...</div>
@@ -288,7 +339,12 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
   <div class="msg-gray">ホストのルームID</div>
   <input id="joinRoomInput" class="field" type="text" maxlength="20" placeholder="ルームID" autocomplete="off">
   <div id="joinStatus" class="msg-warn" style="display:none"></div>
-  <div class="btn-row">
+  <div id="joinSettingsPanel" class="settings-panel" style="display:none;margin-top:4px">
+    <div class="sp-title">ホスト設定（変更不可）</div>
+    <div id="joinSettingsInfo" style="font-size:11px;letter-spacing:1px;color:rgba(0,255,204,.7)"></div>
+    <div id="courseLoadStatus" class="course-info" style="display:none"></div>
+  </div>
+  <div class="btn-row" style="margin-top:8px">
     <button id="btnJoinConnect" class="btn">接続</button>
     <button id="btnJoinCancel" class="btn btn-sm">戻る</button>
   </div>
@@ -304,6 +360,7 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
 <!-- Scripts -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 'use strict';
 /* ================================================================
@@ -417,6 +474,41 @@ let boostSpd=0,boostT=0,landBoostT=0,airAction=false,itemBoostT=0;
 let bodyTilt=0;
 let gravityMode='antigravity';
 
+/* ── COURSE SYSTEM STATE ── */
+let customCourse      = false;
+let hostCourseGlb     = null;       // ArrayBuffer (host only)
+let hostCourseFileName= '';
+let hostGravityMode   = 'antigravity';
+let isSettingsLocked  = false;
+
+// Custom course scene objects
+const surfaceTypeMap    = new Map();  // mesh → surface type string
+const customCheckpoints = [];         // [{mesh, num, center, radius}]
+let   customGoalLine    = null;
+const customDeathMeshes = [];
+let   customStartArea   = null;
+let   customStartLine   = null;
+let   courseCustomItems = false;
+
+// Surface runtime
+let currentSurface  = 'road';
+let waterTimer      = 0;
+let dashHitTimer    = 0;
+let gliderMode      = false;
+let lastCheckpointPos = null;
+let lastCheckpointFwd = new THREE.Vector3(1,0,0);
+let myLap           = 0;
+let myCheckpointsInLap = new Set();
+let totalCustomCheckpoints = 0;
+let goalLineCooldown = 0;
+
+// Course chunk reassembly
+let courseChunks      = [];
+let courseTotalChunks = 0;
+let courseFileName    = '';
+let courseAssembling  = false;
+const clientsReady    = new Map();  // host: peerId → bool
+
 /* ── ITEM SYSTEM STATE ── */
 let heldItem   = null;
 let heldCount  = 0;
@@ -502,8 +594,8 @@ function applyTimeOfDay(isDay){
   if(typeof hPipe!=='undefined'){hPipe.material.color.setHex(t.hpipe.color);hPipe.material.emissive.setHex(t.hpipe.emissive);}
   if(typeof starsMesh!=='undefined') starsMesh.visible=t.stars;
   document.body.classList.toggle('day', isDay);
-  const btn=document.getElementById('btnDayNight');
-  if(btn) btn.textContent=t.btnLabel;
+  const btn=document.getElementById('btnHostDayNight');
+  if(btn) btn.textContent=isDay?'☀️ 昼モード':'🌙 夜モード';
 }
 
 /* ================================================================
@@ -962,6 +1054,295 @@ function showItemBanner(msg){
 }
 
 /* ================================================================
+   COURSE SYSTEM — GLTF LOADING & SURFACE LOGIC
+   ================================================================ */
+function getMaterialName(mesh){
+  if(!mesh.material) return '';
+  const m=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;
+  return m&&m.name?m.name.toLowerCase():'';
+}
+function getSurfacePrefix(n){
+  const ps=['startarea','startline','goalline','checkpoint','death','air','dash','mash','glide','ice','water','grass','road','box'];
+  for(const p of ps){if(n.startsWith(p))return p;}
+  return 'road';
+}
+
+function clearCustomCourse(){
+  surfaceTypeMap.forEach((_,mesh)=>{scene.remove(mesh);});
+  customCheckpoints.forEach(cp=>scene.remove(cp.mesh));
+  customDeathMeshes.forEach(m=>scene.remove(m));
+  if(customGoalLine) scene.remove(customGoalLine);
+  if(customStartArea) scene.remove(customStartArea);
+  if(customStartLine) scene.remove(customStartLine);
+  surfaceTypeMap.clear();
+  customCheckpoints.length=0;
+  customDeathMeshes.length=0;
+  customGoalLine=null;customStartArea=null;customStartLine=null;
+  // Remove custom meshes from terrainObjects
+  const keep=terrainObjects.filter(m=>!m.userData.customCourse);
+  terrainObjects.length=0;
+  terrainObjects.push(...keep);
+  courseCustomItems=false;
+}
+
+function loadCourseFromBuffer(arrayBuffer,fileName){
+  return new Promise((resolve,reject)=>{
+    if(typeof THREE.GLTFLoader==='undefined'){reject(new Error('GLTFLoader未ロード'));return;}
+    clearCustomCourse();
+    const loader=new THREE.GLTFLoader();
+    const blob=new Blob([arrayBuffer],{type:'model/gltf-binary'});
+    const url=URL.createObjectURL(blob);
+    loader.load(url,gltf=>{
+      URL.revokeObjectURL(url);
+      processCourseScene(gltf.scene,fileName);
+      resolve();
+    },undefined,err=>{URL.revokeObjectURL(url);reject(err);});
+  });
+}
+
+function processCourseScene(root,fileName){
+  hostCourseFileName=fileName;
+  customCourse=true;
+  // Hide default demo arena ground & walls so custom course takes over
+  gnd.visible=false;
+  const boxPositions=[];
+
+  root.updateMatrixWorld(true);
+  root.traverse(obj=>{
+    if(!obj.isMesh) return;
+    const name=getMaterialName(obj);
+    const prefix=getSurfacePrefix(name);
+    obj.updateWorldMatrix(true,false);
+
+    if(prefix==='air'){ scene.add(obj); return; }
+
+    if(prefix==='startarea'){
+      customStartArea=obj;obj.visible=false;scene.add(obj);return;
+    }
+    if(prefix==='startline'){
+      customStartLine=obj;obj.visible=false;scene.add(obj);return;
+    }
+    if(prefix==='goalline'){
+      customGoalLine=obj;
+      applyTriggerMaterial(obj,0xffcc00,.55);
+      scene.add(obj);return;
+    }
+    if(prefix==='checkpoint'){
+      const num=parseInt(name.replace('checkpoint',''))||0;
+      const b3=new THREE.Box3().setFromObject(obj);
+      const center=b3.getCenter(new THREE.Vector3());
+      const sz=b3.getSize(new THREE.Vector3());
+      const radius=Math.max(sz.x,sz.z)/2+1.5;
+      applyTriggerMaterial(obj,0x00aaff,.45);
+      scene.add(obj);
+      customCheckpoints.push({mesh:obj,num,center,radius});
+      return;
+    }
+    if(prefix==='death'){
+      customDeathMeshes.push(obj);obj.visible=false;scene.add(obj);return;
+    }
+    if(prefix==='box'){
+      const b3=new THREE.Box3().setFromObject(obj);
+      const c=b3.getCenter(new THREE.Vector3());c.y=b3.max.y+0.7;
+      boxPositions.push([c.x,c.y,c.z]);
+      obj.visible=false;scene.add(obj);return;
+    }
+    // Physical surface
+    obj.castShadow=true;obj.receiveShadow=true;
+    obj.userData.customCourse=true;
+    scene.add(obj);
+    surfaceTypeMap.set(obj,prefix);
+    terrainObjects.unshift(obj);
+  });
+
+  customCheckpoints.sort((a,b)=>a.num-b.num);
+  totalCustomCheckpoints=customCheckpoints.length;
+
+  if(boxPositions.length>0) setupCustomItemBoxes(boxPositions);
+
+  console.log(`コース「${fileName}」 CP:${totalCustomCheckpoints} 路面メッシュ:${[...surfaceTypeMap.keys()].length}`);
+}
+
+function applyTriggerMaterial(obj,hex,opacity){
+  const makeM=()=>new THREE.MeshBasicMaterial({color:hex,transparent:true,opacity,wireframe:false,depthWrite:false});
+  if(Array.isArray(obj.material)) obj.material=obj.material.map(()=>makeM());
+  else obj.material=makeM();
+}
+
+function setupCustomItemBoxes(positions){
+  itemMeshes.forEach(m=>scene.remove(m));
+  itemMeshes.length=0;
+  itemActive.length=0;
+  positions.forEach(pos=>{
+    const mat=new THREE.MeshPhongMaterial({color:0xffdd00,emissive:0x443300,shininess:200,transparent:true,opacity:.92});
+    const m=new THREE.Mesh(itemBoxGeo,mat);
+    m.position.set(pos[0],pos[1],pos[2]);m.castShadow=true;
+    scene.add(m);itemMeshes.push(m);itemActive.push(true);
+  });
+  courseCustomItems=true;
+}
+
+/* ── SURFACE PHYSICS PROFILE ── */
+function getSurfaceProfile(){
+  switch(currentSurface){
+    case 'grass':return{maxSpd:P.maxFwdSpd*.52,accel:P.accel*.55,natDecel:P.natDecel*1.2,steer:1.0};
+    case 'water':return{maxSpd:P.maxFwdSpd*.38,accel:P.accel*.4, natDecel:P.natDecel*1.5,steer:.8};
+    case 'ice':  return{maxSpd:P.maxFwdSpd*.95,accel:P.accel*.3, natDecel:P.natDecel*.06, steer:.55};
+    default:     return{maxSpd:P.maxFwdSpd,    accel:P.accel,    natDecel:P.natDecel,     steer:1.0};
+  }
+}
+
+/* ── DEATH / RESPAWN ── */
+function triggerDeath(){
+  if(lastCheckpointPos){
+    kartGroup.position.copy(lastCheckpointPos).addScaledVector(new THREE.Vector3(0,1,0),2);
+    kartForward.copy(lastCheckpointFwd);
+  } else {
+    const sp=customCourse?getCustomSpawn(mySlot):new THREE.Vector3(...(START_POS[mySlot]||START_POS[0]));
+    kartGroup.position.copy(sp);
+    kartForward.copy(getStartFacing());
+  }
+  fwdSpd=0;latSpd=0;vertVel=0;grounded=true;
+  waterTimer=0;gliderMode=false;
+  camPos.copy(kartGroup.position).addScaledVector(kartForward,-5).addScaledVector(new THREE.Vector3(0,1,0),3.5);
+  showItemBanner('💀 リスポーン！');
+}
+
+/* ── GLIDER ── */
+function updateGliderDescent(dt){
+  if(!gliderMode||grounded){if(grounded&&gliderMode)gliderMode=false;return;}
+  // Clamp sink rate for gentle glide
+  if(vertVel<-3.5) vertVel+=((-3.5-vertVel)*dt*5);
+}
+
+/* ── CUSTOM CHECKPOINT LOGIC ── */
+function checkCustomCourse(){
+  if(!physicsEnabled||raceFinished) return;
+  const kpos=kartGroup.position;
+
+  // Death zones
+  for(const dm of customDeathMeshes){
+    const b=new THREE.Box3().setFromObject(dm);
+    if(b.containsPoint(kpos)){triggerDeath();return;}
+  }
+  // Water drowning
+  if(currentSurface==='water'){
+    if(waterTimer>4.5){triggerDeath();waterTimer=0;return;}
+  }
+  // Checkpoints
+  for(const cp of customCheckpoints){
+    if(!myCheckpointsInLap.has(cp.num)&&kpos.distanceTo(cp.center)<cp.radius){
+      myCheckpointsInLap.add(cp.num);
+      lastCheckpointPos=cp.center.clone();
+      lastCheckpointFwd=kartForward.clone();
+      passedCP=myLap*1000+Math.max(...myCheckpointsInLap);
+      updateLapHUD();
+      showItemBanner(`✅ チェックポイント ${cp.num}`);
+    }
+  }
+  // Goal line
+  if(customGoalLine&&goalLineCooldown<=0){
+    const b=new THREE.Box3().setFromObject(customGoalLine);b.expandByScalar(2);
+    if(b.containsPoint(kpos)){
+      if(myCheckpointsInLap.size>=totalCustomCheckpoints){
+        myLap++;myCheckpointsInLap.clear();
+        passedCP=myLap*1000;
+        goalLineCooldown=3.0;
+        updateLapHUD();
+        if(myLap>=TOTAL_LAPS) finishRace();
+        else showItemBanner(`🏁 LAP ${myLap+1}！`);
+      }
+    }
+  }
+  if(goalLineCooldown>0) goalLineCooldown-=0.016;
+}
+
+/* ── SPAWN HELPERS ── */
+function getCustomSpawn(slot){
+  if(!customStartArea){
+    const sp=START_POS[slot]||START_POS[0];
+    return new THREE.Vector3(sp[0],sp[1],sp[2]);
+  }
+  const b=new THREE.Box3().setFromObject(customStartArea);
+  const c=b.getCenter(new THREE.Vector3());
+  const sz=b.getSize(new THREE.Vector3());
+  const cols=3;
+  const col=slot%cols,row=Math.floor(slot/cols);
+  return new THREE.Vector3(
+    c.x+(col-1)*Math.min(sz.x/4,3.5),
+    b.max.y+GND_Y,
+    c.z+row*Math.min(sz.z/3,3.5)
+  );
+}
+
+function getStartFacing(){
+  if(!customStartLine) return START_FWD.clone();
+  const dir=new THREE.Vector3(0,0,1);
+  dir.applyQuaternion(customStartLine.quaternion);
+  dir.y=0;
+  return dir.length()>0.01?dir.normalize():START_FWD.clone();
+}
+
+/* ── COURSE CHUNK NETWORK ── */
+const CHUNK_B64=49152;
+
+function ab2b64(buf){
+  let s='';const b=new Uint8Array(buf);
+  for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]);
+  return btoa(s);
+}
+function b642ab(s){
+  const b=atob(s);const u=new Uint8Array(b.length);
+  for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i);
+  return u.buffer;
+}
+
+function sendCourseToConn(conn){
+  if(!hostCourseGlb) return;
+  const b64=ab2b64(hostCourseGlb);
+  const total=Math.ceil(b64.length/CHUNK_B64);
+  conn.send({t:'course_header',total,fileName:hostCourseFileName});
+  for(let i=0;i<total;i++){
+    conn.send({t:'course_chunk',idx:i,data:b64.slice(i*CHUNK_B64,(i+1)*CHUNK_B64)});
+  }
+}
+
+function handleCourseChunk(data){
+  courseChunks[data.idx]=data.data;
+  const got=courseChunks.filter(Boolean).length;
+  setNetStatus(`コース受信中... ${got}/${courseTotalChunks}`);
+  const clEl=document.getElementById('courseLoadStatus');
+  if(clEl){clEl.textContent=`📥 受信中... ${got}/${courseTotalChunks}`;clEl.style.display='block';clEl.className='course-info loading';}
+  if(got>=courseTotalChunks){
+    const buf=b642ab(courseChunks.join(''));
+    courseChunks=[];courseAssembling=false;
+    setNetStatus('コース読み込み中...');
+    loadCourseFromBuffer(buf,courseFileName).then(()=>{
+      setNetStatus('コース準備完了！');
+      if(hostConn) hostConn.send({t:'course_ready'});
+      if(clEl){clEl.textContent=`✅ ${courseFileName} 読み込み完了`;clEl.className='course-info loaded';}
+    }).catch(err=>{
+      setNetStatus('コース読み込み失敗');
+      console.error(err);
+    });
+  }
+}
+
+function updateHostSettingsBadge(settings){
+  const el=document.getElementById('hostSettingsBadge');
+  if(!el) return;
+  const timeStr=settings.dayMode?'☀️ 昼':'🌙 夜';
+  const gravStr=settings.gravityMode==='antigravity'?'🌀 反重力':'🔽 通常重力';
+  const courseStr=settings.hasCourse?`📁 ${settings.fileName||'カスタム'}`:'🏟 デモ';
+  el.textContent=`${courseStr}  ${timeStr}  ${gravStr}`;
+  el.classList.add('show');
+  const ji=document.getElementById('joinSettingsInfo');
+  if(ji) ji.textContent=`${timeStr} / ${gravStr} / ${courseStr}`;
+  const jp=document.getElementById('joinSettingsPanel');
+  if(jp) jp.style.display='flex';
+}
+
+/* ================================================================
    SECTION 6 — KART MESH FACTORY
    ================================================================ */
 function createKartMesh(bodyColor=0xcc1100,glowColor=0x00ffcc){
@@ -1069,12 +1450,12 @@ function quatFromVecs(fwd,normal){
    SECTION 8 — CHECKPOINT & RANKING
    ================================================================ */
 function checkCheckpoints(){
+  if(customCourse){ checkCustomCourse(); return; }
   if(!physicsEnabled||raceFinished) return;
   const kpos=kartGroup.position;
   const target=CHECKPOINTS[nextCPIdx];
   if(!target) return;
-  const d=kpos.distanceTo(target.pos);
-  if(d < target.r){
+  if(kpos.distanceTo(target.pos) < target.r){
     passedCP++;
     nextCPIdx=(nextCPIdx+1)%NUM_CP;
     updateLapHUD();
@@ -1083,9 +1464,15 @@ function checkCheckpoints(){
 }
 
 function updateLapHUD(){
-  const lap=Math.min(Math.floor(passedCP/NUM_CP)+1,TOTAL_LAPS);
-  document.getElementById('lapNum').textContent='LAP '+lap;
-  document.getElementById('lapSub').textContent='OF '+TOTAL_LAPS;
+  if(customCourse){
+    const lapNum=Math.min(myLap+1,TOTAL_LAPS);
+    document.getElementById('lapNum').textContent='LAP '+lapNum;
+    document.getElementById('lapSub').textContent=`OF ${TOTAL_LAPS}  CP ${myCheckpointsInLap.size}/${totalCustomCheckpoints}`;
+  } else {
+    const lap=Math.min(Math.floor(passedCP/NUM_CP)+1,TOTAL_LAPS);
+    document.getElementById('lapNum').textContent='LAP '+lap;
+    document.getElementById('lapSub').textContent='OF '+TOTAL_LAPS;
+  }
 }
 
 function getMyProgress(){return passedCP;}
@@ -1211,6 +1598,10 @@ function onNewClientConn(conn){
     conn.send({t:'welcome',players:playerSlots.map((id,s)=>({id,s})),hostId:myId});
     // Notify others
     broadcastToAll({t:'joined',id:cid,s:slot},cid);
+    // Send host settings to new client
+    conn.send({t:'host_settings',dayMode,gravityMode:hostGravityMode,hasCourse:!!hostCourseGlb,fileName:hostCourseFileName});
+    // Send course GLB if available
+    if(hostCourseGlb) sendCourseToConn(conn);
     updateHostPList();
     document.getElementById('btnStartRace').disabled=false;
     document.getElementById('hostStatus').textContent=`${conns.size}人が接続中`;
@@ -1253,9 +1644,12 @@ function onDataFromClient(conn,data){
       broadcastToAll(data,data.id);
       break;
     case 'thunder':
-      // A remote player used thunder — spin us
       if(data.id!==myId) applySpin();
       broadcastToAll(data,data.id);
+      break;
+    case 'course_ready':
+      clientsReady.set(conn.peer,true);
+      document.getElementById('hostStatus').textContent=`準備完了: ${clientsReady.size}/${conns.size}人`;
       break;
     default:break;
   }
@@ -1345,7 +1739,26 @@ function onDataFromHost(data){
       document.getElementById('rankHUD').style.display='none';
       document.getElementById('itemSlotHUD').style.display='none';
       inMenuMode=false;
-      runCountdown(()=>beginRace('demo'));
+      runCountdown(()=>beginRace('custom'));
+      break;
+    case 'host_settings':
+      // Apply host's settings (day/night, gravity) — locked for client
+      isSettingsLocked=true;
+      dayMode=!!data.dayMode;
+      applyTimeOfDay(dayMode);
+      hostGravityMode=data.gravityMode||'antigravity';
+      gravityMode=hostGravityMode;
+      updateHostSettingsBadge(data);
+      break;
+    case 'course_header':
+      courseChunks=[];
+      courseTotalChunks=data.total;
+      courseFileName=data.fileName||'course.glb';
+      courseAssembling=true;
+      setNetStatus(`コース受信中... 0/${courseTotalChunks}`);
+      break;
+    case 'course_chunk':
+      if(courseAssembling) handleCourseChunk(data);
       break;
     case 'item':
       if(data.action==='off'){ itemActive[data.idx]=false; }
@@ -1423,7 +1836,7 @@ window.addEventListener('keydown',e=>{
   if(!keys[e.code]) pressed[e.code]=true;
   keys[e.code]=true;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-  if(e.code==='KeyG' && pressed['KeyG']) toggleGravityMode();
+  if(e.code==='KeyG' && pressed['KeyG'] && !isSettingsLocked) toggleGravityMode();
   hideTouchUI();
 });
 window.addEventListener('keyup',e=>{keys[e.code]=false;released[e.code]=true;});
@@ -1577,32 +1990,32 @@ function gravity(dt){
   }
 }
 function accelerate(dt){
-  // During spin: lose control, slow down
+  // During spin: lose control
   if(spinTimer>0){
     fwdSpd*=Math.max(0,1-dt*4);
     kartForward.applyAxisAngle(kartNormal,dt*(spinTimer>SPIN_DUR*.5?3:-3)).normalize();
     return;
   }
-  // Bullet: force max speed, no brake
-  if(bulletMode){
-    fwdSpd=mvtw(fwdSpd,P.maxFwdSpd+8,P.accel*dt);
-    return;
-  }
-  const v=gV();
+  // Bullet: force max speed
+  if(bulletMode){fwdSpd=mvtw(fwdSpd,P.maxFwdSpd+8,P.accel*dt);return;}
+
+  const sp=getSurfaceProfile();
   const mushroomBoost=(itemBoostT>0?MUSH_SPD:0);
-  const eMax=P.maxFwdSpd+(boostT>0?boostSpd:0)+(landBoostT>0?P.landBoostSpd:0)+mushroomBoost;
+  const eMax=sp.maxSpd+(boostT>0?boostSpd:0)+(landBoostT>0?P.landBoostSpd:0)+mushroomBoost;
+  const v=gV();
   let tgt,rate;
-  if(v>.01){tgt=eMax;rate=fwdSpd<-.1?P.brakeDecel:P.accel;}
-  else if(v<-.01){tgt=-P.maxRevSpd;rate=fwdSpd>.1?P.brakeDecel:P.accel;}
-  else{tgt=0;rate=P.natDecel;}
+  if(v>.01){tgt=eMax;rate=fwdSpd<-.1?P.brakeDecel:sp.accel;}
+  else if(v<-.01){tgt=-P.maxRevSpd*.6;rate=fwdSpd>.1?P.brakeDecel:sp.accel;}
+  else{tgt=0;rate=sp.natDecel;}
   fwdSpd=mvtw(fwdSpd,tgt,rate*dt);
 }
 function steer(dt){
-  if(spinTimer>0||bulletMode) return; // auto-handled in accelerate / updateBulletPilot
+  if(spinTimer>0||bulletMode) return;
   if(Math.abs(fwdSpd)<.5) return;
   const h=gH();
+  const sp=getSurfaceProfile();
   const sr=clamp(Math.abs(fwdSpd)/P.maxFwdSpd,0,1);
-  const rate=P.steerLow+(P.steerHigh-P.steerLow)*sr;
+  const rate=(P.steerLow+(P.steerHigh-P.steerLow)*sr)*sp.steer;
   let mult=1;if(drifting)mult=Math.sign(h)===driftDir?P.driftSteerMult:.35;
   const angle=h*mult*rate*Math.sign(fwdSpd)*dt;
   kartForward.applyAxisAngle(kartNormal,angle).normalize();
@@ -1627,6 +2040,8 @@ function commit(dt){
   const moveVec=new THREE.Vector3().addScaledVector(f,fwdSpd*dt).addScaledVector(r,latSpd*dt);
   if(gravityMode==='normal')moveVec.y+=vertVel*dt;
   else moveVec.addScaledVector(kartNormal,vertVel*dt);
+  // Glider: slow descent
+  updateGliderDescent(dt);
   const moveDist=moveVec.length();
   if(moveDist===0) return;
   const moveDir=moveVec.clone().normalize();
@@ -1658,10 +2073,55 @@ function commit(dt){
       let canLand;
       if(gravityMode==='normal')canLand=hitN.y>.01;
       else{const wasAirborne=!wasGrounded;canLand=hitN.angleTo(kartNormal)<=Math.PI/6+.05||wasAirborne;}
-      if(canLand){kartNormal.copy(hitN);alignForwardToNormal();nextPos.copy(hit.point).addScaledVector(kartNormal,GND_Y);grounded=true;vertVel=0;}
+      if(canLand){
+        kartNormal.copy(hitN);alignForwardToNormal();
+        nextPos.copy(hit.point).addScaledVector(kartNormal,GND_Y);
+        grounded=true;vertVel=0;
+        gliderMode=false;
+        // Detect surface type from hit mesh
+        const surf=surfaceTypeMap.get(hit.object)||'road';
+        if(surf!==currentSurface){
+          currentSurface=surf;
+          updateSurfaceHUD();
+        }
+        // Trigger surface effects
+        switch(surf){
+          case 'dash':
+            if(dashHitTimer<=0){
+              fwdSpd=Math.min(fwdSpd+(P.maxFwdSpd*.6),P.maxFwdSpd+P.redBoostSpd);
+              dashHitTimer=0.25;
+            }
+            break;
+          case 'mash':
+            if(!wasGrounded){ vertVel=P.jumpForce*1.1; grounded=false; }
+            break;
+          case 'glide':
+            if(!wasGrounded||fwdSpd>P.maxFwdSpd*.4){
+              gliderMode=true;
+              // Give upward boost if coming from Dash
+              if(fwdSpd>P.maxFwdSpd*.7) vertVel=P.jumpForce*.7;
+              grounded=false;
+            }
+            break;
+          case 'water':
+            waterTimer+=dt;
+            break;
+        }
+      }
     }
   }
+  // Reset non-water timers when off water
+  if(grounded&&currentSurface!=='water') waterTimer=0;
+  if(dashHitTimer>0) dashHitTimer-=dt;
   kartGroup.position.copy(nextPos);
+}
+
+function updateSurfaceHUD(){
+  const s4=document.getElementById('s4');
+  const labels={road:'ROAD',grass:'🌿 GRASS',water:'💧 WATER',ice:'🧊 ICE',dash:'⚡ DASH',mash:'🔼 MASH',glide:'🪂 GLIDE'};
+  const label=labels[currentSurface]||'ROAD';
+  if(currentSurface==='road'){s4.style.display='none';}
+  else{s4.style.display='';s4.textContent=label;}
 }
 
 /* ================================================================
@@ -1760,7 +2220,7 @@ function spinItems(dt){
 /* ================================================================
    SECTION 14 — UI / SCREEN MANAGEMENT
    ================================================================ */
-const screens=['scrIdSetup','scrTitle','scrChangeId','scrPlayMenu','scrCourseSelect','scrHostLobby','scrJoinLobby','scrResults'];
+const screens=['scrIdSetup','scrTitle','scrChangeId','scrPlayMenu','scrHostLobby','scrJoinLobby','scrResults'];
 function showScreen(id){
   screens.forEach(s=>{
     const el=document.getElementById(s);
@@ -1814,12 +2274,27 @@ function beginRace(courseId){
   // Reset race state
   passedCP=0;nextCPIdx=1;myRaceTime=0;raceFinished=false;raceResults=[];
   fwdSpd=0;latSpd=0;vertVel=0;grounded=true;drifting=false;boostT=0;itemBoostT=0;
-  kartForward.copy(START_FWD);kartNormal.set(0,1,0);
+  myLap=0;myCheckpointsInLap=new Set();goalLineCooldown=0;
+  currentSurface='road';waterTimer=0;dashHitTimer=0;gliderMode=false;
+  lastCheckpointPos=null;lastCheckpointFwd.set(1,0,0);
+
+  // Apply host gravity (clients have it set from host_settings; host uses own toggle)
+  gravityMode=isSettingsLocked?hostGravityMode:gravityMode;
 
   // Position kart
-  const sp=START_POS[mySlot]||START_POS[0];
-  kartGroup.position.set(sp[0],sp[1],sp[2]);
-  camPos.set(sp[0],sp[1]+4,sp[2]-6);
+  let spawnPos,spawnFwd;
+  if(customCourse){
+    spawnPos=getCustomSpawn(mySlot);
+    spawnFwd=getStartFacing();
+  } else {
+    const sp=START_POS[mySlot]||START_POS[0];
+    spawnPos=new THREE.Vector3(sp[0],sp[1],sp[2]);
+    spawnFwd=START_FWD.clone();
+  }
+  kartGroup.position.copy(spawnPos);
+  kartForward.copy(spawnFwd);
+  kartNormal.set(0,1,0);
+  camPos.set(spawnPos.x,spawnPos.y+4,spawnPos.z-6);
 
   // Reset items
   itemActive.fill(true);updateItemMeshes();
@@ -1831,6 +2306,7 @@ function beginRace(courseId){
   bananaObjs.forEach(b=>scene.remove(b.mesh));bananaObjs.length=0;
   document.getElementById('spinOverlay').classList.remove('on');
   updateItemHUD();
+  document.getElementById('s4').style.display='none';
 
   // Show racing HUD
   document.getElementById('topLeft').style.display='flex';
@@ -1947,23 +2423,28 @@ document.getElementById('btnChangeIdCancel').addEventListener('click',()=>showSc
 
 // ── Play Menu ──
 document.getElementById('btnDemoCourse').addEventListener('click',()=>{
-  showScreen('hidden'); // hide all screens → show game
   screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
-  document.getElementById('topLeft').style.display='none'; // hide HUD until countdown done
+  document.getElementById('topLeft').style.display='none';
   document.getElementById('hud').style.display='none';
   document.getElementById('lapHUD').style.display='none';
   document.getElementById('rankHUD').style.display='none';
   document.getElementById('itemSlotHUD').style.display='none';
-  physicsEnabled=false;inMenuMode=false;
+  physicsEnabled=false;inMenuMode=false;isSettingsLocked=false;
+  clearCustomCourse();gnd.visible=true;
   runCountdown(()=>startSoloRace());
 });
-document.getElementById('btnCourseSelect').addEventListener('click',()=>showScreen('scrCourseSelect'));
 document.getElementById('btnHost').addEventListener('click',()=>{
   showScreen('scrHostLobby');
   document.getElementById('hostRoomId').textContent='接続中...';
   document.getElementById('hostStatus').textContent='PeerJSサーバーに接続中...';
   document.getElementById('hostPList').innerHTML='';
   document.getElementById('btnStartRace').disabled=true;
+  // reset host settings state
+  hostCourseGlb=null;hostCourseFileName='';
+  document.getElementById('courseInfoBadge').className='course-info';
+  document.getElementById('courseInfoBadge').textContent='';
+  document.getElementById('btnUseDemoCourse').classList.add('active');
+  isSettingsLocked=false;
   startHost();
   updateHostPList();
 });
@@ -1971,21 +2452,66 @@ document.getElementById('btnJoin').addEventListener('click',()=>{
   showScreen('scrJoinLobby');
   document.getElementById('joinRoomInput').value='';
   document.getElementById('joinStatus').style.display='none';
+  document.getElementById('joinSettingsPanel').style.display='none';
+  document.getElementById('courseLoadStatus').style.display='none';
 });
 document.getElementById('btnPlayBack').addEventListener('click',()=>showScreen('scrTitle'));
 
-document.getElementById('btnDayNight').addEventListener('click',()=>{
-  dayMode=!dayMode;
-  applyTimeOfDay(dayMode);
+// ── Host Settings ──
+document.getElementById('courseFileInput').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file) return;
+  const badge=document.getElementById('courseInfoBadge');
+  badge.textContent=`📥 読み込み中... ${file.name}`;
+  badge.className='course-info loading';badge.style.display='block';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    hostCourseGlb=ev.target.result;
+    hostCourseFileName=file.name;
+    loadCourseFromBuffer(hostCourseGlb,file.name).then(()=>{
+      badge.textContent=`✅ ${file.name} (コース読込完了)`;
+      badge.className='course-info loaded';
+      document.getElementById('btnUseDemoCourse').classList.remove('active');
+      gnd.visible=false;
+      // Broadcast settings update to any already-connected clients
+      broadcastToAll({t:'host_settings',dayMode,gravityMode:hostGravityMode,hasCourse:true,fileName:file.name},null);
+      // Send course to each connected client
+      conns.forEach(c=>sendCourseToConn(c));
+    }).catch(err=>{
+      badge.textContent=`❌ エラー: ${err.message}`;
+      badge.className='course-info';
+      hostCourseGlb=null;
+    });
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
 });
 
-// ── Course Select ──
-document.getElementById('btnCourse0').addEventListener('click',()=>{
-  screens.forEach(s=>{ const el=document.getElementById(s);if(el) el.classList.add('hidden'); });
-  physicsEnabled=false;inMenuMode=false;
-  runCountdown(()=>startSoloRace());
+document.getElementById('btnUseDemoCourse').addEventListener('click',()=>{
+  hostCourseGlb=null;hostCourseFileName='';
+  clearCustomCourse();gnd.visible=true;
+  document.getElementById('courseInfoBadge').className='course-info';
+  document.getElementById('courseInfoBadge').textContent='';
+  document.getElementById('btnUseDemoCourse').classList.add('active');
+  broadcastToAll({t:'host_settings',dayMode,gravityMode:hostGravityMode,hasCourse:false},null);
 });
-document.getElementById('btnCourseBack').addEventListener('click',()=>showScreen('scrPlayMenu'));
+
+document.getElementById('btnHostDayNight').addEventListener('click',()=>{
+  dayMode=!dayMode;
+  applyTimeOfDay(dayMode);
+  const btn=document.getElementById('btnHostDayNight');
+  btn.textContent=dayMode?'☀️ 昼モード':'🌙 夜モード';
+  btn.classList.toggle('active',dayMode);
+  broadcastToAll({t:'host_settings',dayMode,gravityMode:hostGravityMode,hasCourse:!!hostCourseGlb,fileName:hostCourseFileName},null);
+});
+
+document.getElementById('btnHostGravity').addEventListener('click',()=>{
+  hostGravityMode=hostGravityMode==='antigravity'?'normal':'antigravity';
+  const btn=document.getElementById('btnHostGravity');
+  btn.textContent=hostGravityMode==='antigravity'?'🌀 反重力':'🔽 通常重力';
+  btn.classList.toggle('active',hostGravityMode==='antigravity');
+  gravityMode=hostGravityMode;
+  broadcastToAll({t:'host_settings',dayMode,gravityMode:hostGravityMode,hasCourse:!!hostCourseGlb,fileName:hostCourseFileName},null);
+});
 
 // ── Host Lobby ──
 document.getElementById('hostRoomId').addEventListener('click',()=>{
@@ -2003,8 +2529,9 @@ document.getElementById('btnStartRace').addEventListener('click',()=>{
   document.getElementById('rankHUD').style.display='none';
   document.getElementById('itemSlotHUD').style.display='none';
   inMenuMode=false;
+  gravityMode=hostGravityMode;
   broadcastToAll({t:'race_start'},null);
-  runCountdown(()=>beginRace('demo'));
+  runCountdown(()=>beginRace('custom'));
 });
 document.getElementById('btnHostCancel').addEventListener('click',()=>{
   cleanupNetwork();showScreen('scrPlayMenu');
@@ -2028,6 +2555,8 @@ document.getElementById('btnResultsTitle').addEventListener('click',()=>{
   physicsEnabled=false;inMenuMode=true;raceStarted=false;raceFinished=false;
   passedCP=0;nextCPIdx=1;myRaceTime=0;raceResults=[];fwdSpd=0;latSpd=0;
   kartForward.set(1,0,0);kartNormal.set(0,1,0);
+  isSettingsLocked=false;
+  clearCustomCourse();gnd.visible=true;
   document.getElementById('topLeft').style.display='none';
   document.getElementById('hud').style.display='none';
   document.getElementById('lapHUD').style.display='none';
