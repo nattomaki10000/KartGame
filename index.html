@@ -96,8 +96,7 @@ canvas{display:block}
 #itemSlotBox.shield-mode{border-color:#00ffcc;box-shadow:0 0 20px rgba(0,255,204,.6);animation:shieldPulse .6s ease-in-out infinite alternate}
 #itemSlotBox.empty{opacity:.35;border-color:rgba(255,204,0,.2)}
 #itemCountBadge{position:absolute;top:2px;right:4px;font-size:11px;font-weight:bold;color:#ffcc00;font-family:'Courier New',monospace}
-#itemLabel{font-size:9px;letter-spacing:3px;color:rgba(255,204,0,.55)}
-#itemKeyHint{font-size:9px;letter-spacing:2px;color:rgba(255,204,0,.4)}
+
 @keyframes shieldPulse{from{box-shadow:0 0 10px rgba(0,255,204,.4)}to{box-shadow:0 0 30px rgba(0,255,204,.9)}}
 @keyframes starRainbow{0%{color:#ff0000}14%{color:#ff8800}28%{color:#ffff00}42%{color:#00ff44}57%{color:#00aaff}71%{color:#8800ff}85%{color:#ff00aa}100%{color:#ff0000}}
 .star-active .bfill{animation:starRainbow .4s linear infinite}
@@ -195,8 +194,6 @@ body.day #itemSlotBox{background:rgba(255,255,255,.25);border-color:rgba(122,72,
 body.day #itemSlotBox.shield-mode{border-color:#1a5faa;box-shadow:0 0 12px rgba(26,95,170,.4)}
 body.day #itemSlotBox.empty{border-color:rgba(122,72,0,.2)}
 body.day #itemCountBadge{color:#7a4800}
-body.day #itemLabel{color:rgba(122,72,0,.65)}
-body.day #itemKeyHint{color:rgba(122,72,0,.45)}
 body.day #netStatus{color:rgba(13,43,94,.4)}
 body.day .touch-btn{border-color:rgba(13,43,94,.5);background:rgba(13,43,94,.18);color:rgba(10,30,80,.9)}
 body.day #touchGas{border-color:rgba(0,100,50,.55);background:rgba(0,100,50,.18)}
@@ -236,8 +233,6 @@ body.day #dvign{background:radial-gradient(ellipse at center,transparent 45%,rgb
 <div id="itemBanner">⚡ SPEED BOOST!</div>
 <div id="itemSlotHUD">
   <div id="itemSlotBox" class="empty"><span id="itemIcon">?</span><span id="itemCountBadge"></span></div>
-  <div id="itemLabel">ITEM SLOT</div>
-  <div id="itemKeyHint">[E] USE  [Q] SHIELD</div>
 </div>
 <div id="spinOverlay"></div>
 <div id="thunderOverlay"></div>
@@ -639,6 +634,9 @@ hPipeGeo.rotateZ(Math.PI/2);hPipeGeo.rotateY(Math.PI/4);
 const hPipe=new THREE.Mesh(hPipeGeo,new THREE.MeshPhongMaterial({color:0x008855,emissive:0x002211,side:THREE.DoubleSide}));
 hPipe.position.set(-45,30,45);hPipe.receiveShadow=hPipe.castShadow=true;addTerrain(hPipe);
 
+// Mark all demo-only terrain for hide/show when custom course loaded
+terrainObjects.forEach(m=>m.userData.demoOnly=true);
+
 // Stars (night sky)
 const sPts=new Float32Array(1200*3);
 for(let i=0;i<1200;i++){sPts[i*3]=(Math.random()-.5)*800;sPts[i*3+1]=Math.random()*200+10;sPts[i*3+2]=(Math.random()-.5)*800;}
@@ -647,9 +645,11 @@ const starsMesh=new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xffffff,s
 scene.add(starsMesh);
 
 // Start/finish line
+const demoSceneObjects=[];
 const sfLineMat = new THREE.MeshBasicMaterial({color:0xffcc00});
 const sfLine = new THREE.Mesh(new THREE.BoxGeometry(12,.05,.5),sfLineMat);
 sfLine.position.set(0,.01,68);scene.add(sfLine);
+demoSceneObjects.push(sfLine);
 
 // Checkpoint gate visuals
 CHECKPOINTS.forEach((cp,i)=>{
@@ -659,10 +659,12 @@ CHECKPOINTS.forEach((cp,i)=>{
     const pole=new THREE.Mesh(poleGeo,mat);
     pole.position.set(cp.pos.x+ox*(i%2===0?1:0),3,cp.pos.z+ox*(i%2!==0?1:0));
     scene.add(pole);
+    demoSceneObjects.push(pole);
   });
   const barMat=new THREE.MeshBasicMaterial({color:cp.col,transparent:true,opacity:.5});
   const bar=new THREE.Mesh(new THREE.BoxGeometry(i%2===0?12:.5,.4,i%2===0?.5:12),barMat);
   bar.position.set(cp.pos.x,6.2,cp.pos.z);scene.add(bar);
+  demoSceneObjects.push(bar);
 });
 
 /* ================================================================
@@ -1083,6 +1085,10 @@ function clearCustomCourse(){
   terrainObjects.length=0;
   terrainObjects.push(...keep);
   courseCustomItems=false;
+  // Restore demo terrain visibility
+  terrainObjects.filter(m=>m.userData.demoOnly).forEach(m=>m.visible=true);
+  demoSceneObjects.forEach(m=>m.visible=true);
+  customCourse=false;
 }
 
 function loadCourseFromBuffer(arrayBuffer,fileName){
@@ -1103,8 +1109,9 @@ function loadCourseFromBuffer(arrayBuffer,fileName){
 function processCourseScene(root,fileName){
   hostCourseFileName=fileName;
   customCourse=true;
-  // Hide default demo arena ground & walls so custom course takes over
-  gnd.visible=false;
+  // Hide all demo-only scene objects so custom course takes over
+  terrainObjects.filter(m=>m.userData.demoOnly).forEach(m=>m.visible=false);
+  demoSceneObjects.forEach(m=>m.visible=false);
   const boxPositions=[];
 
   root.updateMatrixWorld(true);
@@ -1372,6 +1379,8 @@ function createKartMesh(bodyColor=0xcc1100,glowColor=0x00ffcc){
 
   g.add(b);
   g.userData.kartBody=b;
+  g.userData.mBody=mBody;
+  g.userData.mGlow=mGlow;
   return g;
 }
 
@@ -1380,6 +1389,14 @@ const kartGroup = createKartMesh(PLAYER_COLORS[0].body,PLAYER_COLORS[0].glow);
 const kartBody  = kartGroup.userData.kartBody;
 kartGroup.position.set(0,GND_Y,62);
 scene.add(kartGroup);
+
+function setMyKartColor(slot){
+  const ci=slot%PLAYER_COLORS.length;
+  const col=PLAYER_COLORS[ci];
+  kartGroup.userData.mBody.color.setHex(col.body);
+  kartGroup.userData.mBody.emissive.copy(new THREE.Color(col.body).multiplyScalar(.18));
+  kartGroup.userData.mGlow.color.setHex(col.glow);
+}
 
 /* ================================================================
    SECTION 7 — REMOTE PLAYER MANAGEMENT
@@ -1713,7 +1730,7 @@ function onDataFromHost(data){
   switch(data.t){
     case 'welcome':
       data.players.forEach(({id,s})=>{
-        if(id===myId){ mySlot=s; return; }
+        if(id===myId){ mySlot=s; setMyKartColor(s); return; }
         spawnRemotePlayer(id,s);
       });
       playerSlots=data.players.map(p=>p.id);
@@ -2314,6 +2331,9 @@ function beginRace(courseId){
   document.getElementById('lapHUD').style.display='block';
   document.getElementById('rankHUD').style.display='block';
   document.getElementById('itemSlotHUD').style.display='flex';
+  // Hide GRAV button in multiplayer (gravity is host-controlled)
+  const gravBtn=document.getElementById('touchGrav');
+  if(gravBtn) gravBtn.style.display=gameMode==='multi'?'none':'';
   updateLapHUD();
 
   // Enable physics AFTER the GO!
@@ -2557,6 +2577,9 @@ document.getElementById('btnResultsTitle').addEventListener('click',()=>{
   kartForward.set(1,0,0);kartNormal.set(0,1,0);
   isSettingsLocked=false;
   clearCustomCourse();gnd.visible=true;
+  setMyKartColor(0);
+  const gravBtn=document.getElementById('touchGrav');
+  if(gravBtn) gravBtn.style.display='';
   document.getElementById('topLeft').style.display='none';
   document.getElementById('hud').style.display='none';
   document.getElementById('lapHUD').style.display='none';
